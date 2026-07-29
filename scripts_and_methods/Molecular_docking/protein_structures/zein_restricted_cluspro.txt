@@ -1,0 +1,9 @@
+ClusPro Attraction/Repulsion format for the zein surface residues
+Paste ONE of the lines below into the RECEPTOR **Attraction** field on ClusPro.
+Leave Repulsion empty. Format = whitespace-separated chain-residue.
+
+--- Try this first (chain A as it appears in zein_model.pdb) ---
+A-4 A-20 A-22 A-25 A-26 A-28 A-29 A-31 A-37 A-38 A-39 A-41 A-42 A-46 A-51 A-54 A-56 A-57 A-68 A-71 A-75 A-95 A-135 A-139 A-140 A-142 A-145 A-146 A-147 A-148 A-177 A-187 A-195 A-198 A-218 A-224 A-225 A-226 A-227 A-231
+
+--- If ClusPro rejects/ignores the above, try lowercase (matches their example) ---
+a-4 a-20 a-22 a-25 a-26 a-28 a-29 a-31 a-37 a-38 a-39 a-41 a-42 a-46 a-51 a-54 a-56 a-57 a-68 a-71 a-75 a-95 a-135 a-139 a-140 a-142 a-145 a-146 a-147 a-148 a-177 a-187 a-195 a-198 a-218 a-224 a-225 a-226 a-227 a-231

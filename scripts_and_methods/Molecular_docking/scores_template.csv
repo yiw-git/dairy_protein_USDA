@@ -1,0 +1,8 @@
+pair_id,ligand_name,server,score,confidence_or_rank,complex_pdb_filename,notes
+D1,beta_lactoglobulin,HDOCK,-228.37,0.8274,D1_HDOCK.pdb,Paste HDOCK docking score (more negative = stronger in HDOCK).
+D1,beta_lactoglobulin,ClusPro,,,D1_ClusPro.pdb,Paste ClusPro lowest-energy cluster score + cluster size.
+D2,alpha_lactalbumin,HDOCK,-315.32,0.9646,D2_HDOCK.pdb,
+D2,alpha_lactalbumin,ClusPro,,,D2_ClusPro.pdb,
+D3,beta_casein_frag1,HDOCK,,,D3_HDOCK.pdb,
+D4,alphaS1_casein_frag1,HDOCK,,,D4_HDOCK.pdb,
+D5,kappa_casein_frag1,HDOCK,,,D5_HDOCK.pdb,

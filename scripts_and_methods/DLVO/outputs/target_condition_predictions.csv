@@ -1,0 +1,4 @@
+condition,pH,ionic_strength_mM,zeta_mV_predicted,V_max_kT,stability_call
+whole milk,6.6,80.0,-24.120135443795274,2.5632108947488974,unstable
+yogurt,4.5,20.0,34.484305537235485,55.43753663327853,stable
+bread-release,5.3,50.0,17.204003329036333,-0.12975341126905918,unstable

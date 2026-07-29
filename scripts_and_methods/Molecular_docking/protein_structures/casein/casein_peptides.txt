@@ -1,0 +1,33 @@
+Casein peptide fragments for molecular docking (Section 3.1.3, Method 3B)
+Species: Bos taurus (bovine). Mature-protein numbering; UniProt numbering in parentheses.
+Note: serine clusters are phosphorylated in real casein, but these are UNMODIFIED
+sequences (no phosphate) - a known limitation for docking/structure prediction.
+
+=== FASTA (paste these directly into ESMFold / ColabFold) ===
+
+>D3_beta_casein_1-25  (UniProt P02666, residues 16-40)  N-terminal phosphopeptide
+RELEELNVPGEIVESLSSSEESITR
+
+>D4_alphaS1_casein_59-79  (UniProt P02662, residues 74-94)  phosphopeptide / acidic cluster
+QMEAESISSSEEIVPNSVEQK
+
+>D5_kappa_casein_106-169  (UniProt P02668, residues 127-190)  caseinomacropeptide (CMP), hydrophilic C-terminal tail
+MAIPPKKNQDKTEIPTINTIASGEPTSTPTTEAVESTVATLEDSPEVIESPPEINTVQVTSTAV
+
+=== Details ===
+
+D3  beta-casein N-terminal phosphopeptide, mature 1-25
+    UniProt: P02666 (CASB_BOVIN), signal peptide 1-15, so mature 1 = UniProt 16
+    Region: highly charged, phospho-serine-rich "head"; classic surface-active fragment
+    Length: 25 aa
+
+D4  alphaS1-casein phosphopeptide, mature 59-79
+    UniProt: P02662 (CASA1_BOVIN), signal peptide 1-15, so mature 1 = UniProt 16
+    Region: acidic phospho-serine cluster (SISSSEE)
+    Length: 21 aa
+
+D5  kappa-casein caseinomacropeptide (CMP / GMP), mature 106-169
+    UniProt: P02668 (CASK_BOVIN), signal peptide 1-21, so mature 1 = UniProt 22
+    Region: hydrophilic C-terminal tail; sits on the micelle surface in real milk
+    (glycosylated in reality; glycans not modeled here)
+    Length: 64 aa

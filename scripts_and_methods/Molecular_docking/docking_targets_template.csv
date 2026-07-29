@@ -1,0 +1,9 @@
+pair_id,receptor_role_zein_surface,ligand_role_milk_protein,ligand_type,structure_source,pdb_or_uniprot_id,fragment_residues,notes,status
+D1,zein_alpha_model,beta_lactoglobulin,whole_protein,PDB,1BEB,,Major whey protein; likely dominant corona former. Clean chain A before docking.,todo
+D2,zein_alpha_model,alpha_lactalbumin,whole_protein,PDB,1F6S,,Second whey protein. Clean chain A. Ca-binding; keep or remove Ca note in writeup.,todo
+D3,zein_alpha_model,beta_casein_frag1,peptide_fragment,build_with_ESMFold,UniProt_P02666,~1-25 (N-terminal phosphopeptide region),Surface-active phosphorylated N-terminus of beta-casein. Intrinsically disordered - fragment is correct unit.,todo
+D4,zein_alpha_model,alphaS1_casein_frag1,peptide_fragment,build_with_ESMFold,UniProt_P02662,~59-79 (phosphopeptide region),Surface-active region of alpha_s1-casein. Adjust residue range to a documented surface-active stretch.,todo
+D5,zein_alpha_model,kappa_casein_frag1,peptide_fragment,build_with_ESMFold,UniProt_P02668,~106-169 (caseinomacropeptide / hydrophilic tail),Hydrophilic surface tail of kappa-casein; sits on micelle surface in real milk.,todo
+NOTE1,,,,, ,,"Zein itself (the receptor) is PREDICTED - not a PDB. Get the alpha-zein sequence from UniProt (Zea mays), predict with ESMFold/ColabFold, save as zein_model.pdb, record pLDDT.",todo
+NOTE2,,,,, ,,"Receptor = zein (the NP surface, big/fixed). Ligand = milk protein (lands on it). Keep this direction on both HDOCK and ClusPro.",info
+NOTE3,,,,, ,,"Fragment residue ranges are STARTING SUGGESTIONS - confirm against a surface-activity reference before final runs.",info
