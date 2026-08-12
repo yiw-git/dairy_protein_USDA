@@ -1,0 +1,4 @@
+ligand,ppi_e_score,top1_fraction,best_fraction_top10,mean_fraction_top10,n_unique_restraint_residues_hit_top10,unique_residues_hit,rank_by_ppi,rank_by_top1_restraint
+alphaS1_casein,5.6358,0.125,0.125,0.08499999999999999,5,"[37, 38, 39, 68, 71]",1,1
+beta_casein,5.5472,0.075,0.075,0.07499999999999998,3,"[37, 38, 39]",2,2
+kappa_casein,5.1626,0.075,0.125,0.08249999999999998,5,"[37, 38, 39, 71, 75]",3,2

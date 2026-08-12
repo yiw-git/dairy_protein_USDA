@@ -1,0 +1,22 @@
+{
+  "note": "SINGLE REPLICATE dataset -- every number here is one measurement, not a mean. No SD/error bars available.",
+  "n_conditions": 12,
+  "n_placeholder_rows_dropped": 24,
+  "sigmoid_fit_used": true,
+  "pooled_sigmoid": {
+    "zeta_low_pH_mV": 11.499997140394335,
+    "zeta_high_pH_mV": -12.10833333436922,
+    "pH_iep": 4.059206285967571,
+    "slope": 0.0428029218177321
+  },
+  "hamaker_J": 1e-20,
+  "radius_nm_used_for_sweep": 133.48,
+  "radius_outlier_conditions": [
+    {
+      "pH": 4.0,
+      "ionic_strength_M": 0.1,
+      "radius_nm_mean": 8404.0,
+      "zeta_mV_mean": 9.05
+    }
+  ]
+}

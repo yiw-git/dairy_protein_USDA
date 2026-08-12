@@ -1,0 +1,11 @@
+megadock_rank,restraints_satisfied,restraints_total,fraction_satisfied,complex_pdb
+1,3,40,0.0750,kappa_casein_complex.1.pdb
+2,3,40,0.0750,kappa_casein_complex.2.pdb
+3,3,40,0.0750,kappa_casein_complex.3.pdb
+4,4,40,0.1000,kappa_casein_complex.4.pdb
+5,5,40,0.1250,kappa_casein_complex.5.pdb
+6,3,40,0.0750,kappa_casein_complex.6.pdb
+7,3,40,0.0750,kappa_casein_complex.7.pdb
+8,3,40,0.0750,kappa_casein_complex.8.pdb
+9,3,40,0.0750,kappa_casein_complex.9.pdb
+10,3,40,0.0750,kappa_casein_complex.10.pdb

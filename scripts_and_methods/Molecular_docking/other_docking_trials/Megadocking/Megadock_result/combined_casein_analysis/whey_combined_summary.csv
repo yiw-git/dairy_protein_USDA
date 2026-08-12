@@ -1,0 +1,3 @@
+ligand,ppi_e_score,top1_fraction,best_fraction_top10,mean_fraction_top10,n_unique_restraint_residues_hit_top10,unique_residues_hit,rank_by_ppi,rank_by_top1_restraint
+alpha_whey,5.8245,0.075,0.075,0.07499999999999998,3,"[37, 38, 39]",1,1
+beta_whey,5.5107,0.075,0.125,0.07749999999999999,5,"[37, 38, 39, 71, 75]",2,1
