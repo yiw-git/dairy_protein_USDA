@@ -1,0 +1,47 @@
+{
+  "interpolation_method": "piecewise-linear in pH per ionic-strength group (clamped at range ends), log-linear in ionic strength between groups. Sigmoidal IEP fit was attempted but diverged (no sign change in real zeta(pH) data over pH 4-7) and was discarded -- see script docstring.",
+  "measured_anchor_points_mV": {
+    "10mM": {
+      "pH": [
+        4.0,
+        5.5,
+        7.0
+      ],
+      "zeta_mV": [
+        -10.753333333333332,
+        -17.17,
+        -33.57333333333333
+      ]
+    },
+    "50mM": {
+      "pH": [
+        4.0,
+        5.5,
+        7.0
+      ],
+      "zeta_mV": [
+        -25.383333333333336,
+        -21.44333333333333,
+        -16.256666666666664
+      ]
+    },
+    "150mM": {
+      "pH": [
+        5.5,
+        7.0
+      ],
+      "zeta_mV": [
+        -18.376666666666665,
+        -16.743333333333336
+      ]
+    }
+  },
+  "hamaker_J": 1e-20,
+  "radius_nm_used_for_sweep": 161.86291666666668,
+  "flagged_conditions_excluded_from_fit": [
+    {
+      "pH": 4.0,
+      "ionic_strength_M": 0.15
+    }
+  ]
+}

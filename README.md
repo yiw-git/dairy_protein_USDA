@@ -13,12 +13,13 @@ third-party reference material live alongside it locally but are excluded via
 |---|---|
 | `scripts_and_methods/DLVO/` | Physics-based DLVO / extended-DLVO colloidal stability model. Debye length, Grahame equation, EDL repulsion, van der Waals attraction, energy barriers, and a sigmoidal ζ(pH) fit used to sweep a continuous pH × ionic-strength stability map. |
 | `scripts_and_methods/Molecular_docking/` | Protein–protein docking of zein against whey and casein structures — MEGADOCK and LightDock run scripts, predicted structures (AlphaFold/ColabFold outputs), docked complexes, and scoring/analysis. |
-| `scripts_and_methods/Coarsed_grained_MD/` | Placeholder for coarse-grained MD work (not yet populated). |
+| `scripts_and_methods/Coarsed_grained_MD/` | Guidance for the planned MARTINI 3 + GROMACS coarse-grained MD work (Method 3C) — build/run/analyze plan and limitations. Run scripts not yet implemented. |
 
 Each subdirectory has its own `README.md` with equations, assumptions, limitations,
 and run instructions. Start with
-[`scripts_and_methods/DLVO/README.md`](scripts_and_methods/DLVO/README.md) and
-[`scripts_and_methods/Molecular_docking/README.md`](scripts_and_methods/Molecular_docking/README.md).
+[`scripts_and_methods/DLVO/README.md`](scripts_and_methods/DLVO/README.md),
+[`scripts_and_methods/Molecular_docking/README.md`](scripts_and_methods/Molecular_docking/README.md), and
+[`scripts_and_methods/Coarsed_grained_MD/README.md`](scripts_and_methods/Coarsed_grained_MD/README.md).
 
 ## Quick start (DLVO)
 
