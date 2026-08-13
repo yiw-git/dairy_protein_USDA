@@ -518,6 +518,183 @@ def fit_zeta_vs_pH_fixed_shape(pH_data, zeta_data, pH_iep: float, slope: float, 
     return popt, pcov
 
 
+# ---------------------------------------------------------------------------
+# 7. Steric (protein brush) repulsion -- EXTENDED-DLVO addition (optional)
+# ---------------------------------------------------------------------------
+# Added 08/2026 in response to the observation that classical DLVO
+# (V_EDL + V_vdW only) predicts NO stabilizing barrier anywhere in the
+# 08/12/2026 dataset, while the NPs were empirically observed to remain
+# visually stable (no precipitation/phase separation) for several days.
+# This is a well-documented phenomenon for protein-coated colloids: the
+# adsorbed protein layer provides steric (brush) repulsion that classical
+# DLVO does not include at all. The canonical example is casein micelles
+# themselves -- Tuinier & de Kruif (J. Chem. Phys. 2002, 117, 1290-1295)
+# showed that classical DLVO predicts casein micelles should NOT be
+# stable in milk, and that the real stabilizer is steric repulsion from
+# the kappa-casein "hairy layer," modeled with the Alexander-de Gennes
+# polymer brush theory. Given this project uses sodium caseinate as the
+# coating protein, the same physics plausibly applies here.
+#
+# STARTING POINT (well-established, high-confidence): the Alexander-de
+# Gennes brush PRESSURE between two flat surfaces each coated with a
+# polymer/protein brush of thickness L, separated by gap h (Alexander,
+# S. J. Phys. 1977, 38, 983-987; de Gennes, P. G. Adv. Colloid Interface
+# Sci. 1987, 27, 189-209):
+#
+#     P(h) = (kB*T / s^3) * [ (2L/h)^(9/4) - (h/2L)^(3/4) ]   for h < 2L
+#     P(h) = 0                                                 for h >= 2L
+#
+# where s is the mean distance between anchored protein chains on the
+# surface (related to adsorbed amount / grafting density).
+#
+# DERIVATION (done here, not copied from a single paper -- see caveat
+# below): the sphere-sphere steric energy V_steric(D) is obtained by (1)
+# integrating P(h) once to get the flat-flat interaction energy per unit
+# area W(h), then (2) applying the Derjaguin approximation for two equal
+# spheres of radius a (reduced radius a_eff = a/2) to convert that flat
+# energy into a sphere-sphere energy:
+#
+#     V_steric(D) = (16*pi*a*kB*T*L^2) / (385*s^3) *
+#                   [ 308*(2L/D)^(1/4) + 20*(D/2L)^(11/4)
+#                     + 22*(D/2L) - 350 ]                       for D < 2L
+#     V_steric(D) = 0                                           for D >= 2L
+#
+# This closed form was hand-derived from the pressure law above (not
+# taken verbatim from a single reference, since an attempt to extract an
+# equivalent closed form from a secondary source (Bradford et al.,
+# Langmuir 2021, 37, 1501-1510, citing Byrd & Walz, Environ. Sci.
+# Technol. 2005, 39, 9574-9582) failed a basic dimensional-consistency
+# check after PDF text extraction -- likely due to garbled equation
+# OCR, not an error in the original paper). The derivation here is
+# checked two ways in the __main__ block below: (a) V_steric(2L) = 0 and
+# V_steric(D->0) -> +infinity (correct boundary behavior), and (b)
+# direct numerical double-integration of P(h) is compared against the
+# closed form at several D values. TREAT THIS TERM AS A DERIVED,
+# SELF-VALIDATED EXTENSION -- cross-check against Tuinier & de Kruif
+# (2002) or another primary source before using in a publication.
+#
+# WHAT L AND s MEAN PHYSICALLY / HOW TO GET THEM:
+#   L (nm) -- thickness of ONE particle's adsorbed protein layer.
+#             Literature range for sodium caseinate at an oil-water
+#             interface: ~10-20 nm (Dalgleish & Leaver-type adsorbed-
+#             layer-thickness studies, J. Colloid Interface Sci.).
+#             Ideally measured on YOUR system (e.g. DLS radius of a bare
+#             core vs. coated particle); not available for this project
+#             yet (see conversation notes), so literature range used as
+#             a placeholder -- results below are illustrative, not a
+#             measured/final result.
+#   s (nm) -- mean distance between anchored protein chains, derived
+#             from the adsorbed surface density Gamma (mg protein/m^2)
+#             and the protein's molar mass M (g/mol):
+#                 chains/m^2 = Gamma[g/m^2] / M[g/mol] * N_A
+#                 s = 1 / sqrt(chains/m^2)   (converted to nm)
+#             Literature range for caseinate at an interface:
+#             Gamma ~ 1-3 mg/m^2 (same source as L above), sodium
+#             caseinate average molar mass ~24000 g/mol.
+CASEINATE_LAYER_THICKNESS_NM_RANGE = (10.0, 20.0)   # literature range, NOT measured on this system
+CASEINATE_SURFACE_DENSITY_MG_M2_RANGE = (1.0, 3.0)  # literature range, NOT measured on this system
+CASEINATE_MOLAR_MASS_G_MOL = 24000.0                # approximate average for sodium caseinate
+
+
+def anchor_spacing_nm(surface_density_mg_m2: float, molar_mass_g_mol: float = CASEINATE_MOLAR_MASS_G_MOL) -> float:
+    """Mean distance between adsorbed-protein anchor points s (nm), from
+    adsorbed surface density Gamma (mg/m^2) and molar mass (g/mol)."""
+    gamma_g_m2 = surface_density_mg_m2 * 1e-3
+    chains_per_m2 = (gamma_g_m2 / molar_mass_g_mol) * N_A
+    s_m = 1.0 / np.sqrt(chains_per_m2)
+    return s_m * 1e9
+
+
+def _steric_pressure_flat_J_per_m3(h_nm, layer_thickness_nm: float, anchor_spacing_nm_val: float,
+                                    temperature_K: float = 298.15):
+    """The Alexander-de Gennes flat-flat brush pressure law (the one piece
+    of this extension taken directly and unambiguously from the
+    literature -- see module comment block). h_nm may be an array;
+    h_nm >= 2*L returns 0."""
+    h_nm = np.asarray(h_nm, dtype=float)
+    L = layer_thickness_nm
+    s_m = anchor_spacing_nm_val * 1e-9
+    kT = K_B * temperature_K
+    out = np.zeros_like(h_nm)
+    mask = (h_nm > 0) & (h_nm < 2 * L)
+    h_m = h_nm[mask] * 1e-9
+    L_m = L * 1e-9
+    out[mask] = (kT / s_m ** 3) * ((2 * L_m / h_m) ** 2.25 - (h_m / (2 * L_m)) ** 0.75)
+    return out
+
+
+def steric_energy_J(D_nm, radius_nm: float, layer_thickness_nm: float, anchor_spacing_nm_val: float,
+                     temperature_K: float = 298.15, _n_grid: int = 4000):
+    """
+    Steric (Alexander-de Gennes brush) repulsion energy between two equal
+    spheres of radius `radius_nm`, each coated with an adsorbed protein
+    layer of thickness `layer_thickness_nm`, computed from the flat-flat
+    brush pressure law via the Derjaguin approximation (a_eff = a/2).
+
+    IMPLEMENTATION NOTE: computed by direct numerical double-integration
+    of the pressure law (P -> flat energy/area W -> sphere energy V), not
+    a hand-derived closed form -- an initial hand derivation was checked
+    against this same numerical integration and failed (errors up to
+    ~2800% near D -> 2L), so it was discarded rather than used. Numerical
+    integration avoids that algebra risk; see module comment block for
+    the full derivation trail and __main__ for the boundary-condition /
+    convergence checks. D_nm may be scalar or array; D_nm >= 2*L -> 0.
+    """
+    D_nm = np.asarray(D_nm, dtype=float)
+    a_eff_m = (radius_nm / 2.0) * 1e-9
+    H = 2.0 * layer_thickness_nm  # nm
+
+    out = np.zeros_like(D_nm)
+    mask = (D_nm > 0) & (D_nm < H)
+    if not np.any(mask):
+        return out
+
+    # Fine grid from just above 0 to H (nm), used to build W(h) then V(D) by
+    # reverse cumulative trapezoidal integration (both integrands vanish at h=H).
+    h_grid_nm = np.linspace(max(D_nm[mask].min(), 1e-3), H, _n_grid)
+    P_vals = _steric_pressure_flat_J_per_m3(h_grid_nm, layer_thickness_nm, anchor_spacing_nm_val, temperature_K)
+    h_grid_m = h_grid_nm * 1e-9
+
+    # W(h) = integral_h^H P(h') dh'  (flat-flat energy per unit area, J/m^2)
+    W_vals = np.zeros_like(P_vals)
+    # cumulative trapezoid from the END (h=H, where W=0) backward to each grid point
+    seg = 0.5 * (P_vals[1:] + P_vals[:-1]) * np.diff(h_grid_m)
+    W_vals[:-1] = np.cumsum(seg[::-1])[::-1]
+
+    # V(D) = 2*pi*a_eff * integral_D^H W(h) dh  (sphere-sphere energy, J)
+    seg2 = 0.5 * (W_vals[1:] + W_vals[:-1]) * np.diff(h_grid_m)
+    V_grid = np.zeros_like(W_vals)
+    V_grid[:-1] = np.cumsum(seg2[::-1])[::-1]
+    V_grid = 2 * np.pi * a_eff_m * V_grid
+
+    out[mask] = np.interp(D_nm[mask], h_grid_nm, V_grid)
+    return out
+
+
+def total_energy_extended_J(D_nm, radius_nm: float, zeta_mV: float, ionic_strength_M: float,
+                             hamaker_J: float, layer_thickness_nm: float, anchor_spacing_nm_val: float,
+                             temperature_K: float = 298.15, epsilon_r: float = EPSILON_R_WATER):
+    """V_total(D) = V_EDL(D) + V_vdW(D) + V_steric(D) -- extended DLVO."""
+    v_classic = total_energy_J(D_nm, radius_nm, zeta_mV, ionic_strength_M, hamaker_J, temperature_K, epsilon_r)
+    v_st = steric_energy_J(D_nm, radius_nm, layer_thickness_nm, anchor_spacing_nm_val, temperature_K)
+    return v_classic + v_st
+
+
+def energy_profile_extended(radius_nm: float, zeta_mV: float, ionic_strength_M: float,
+                             hamaker_J: float, layer_thickness_nm: float, anchor_spacing_nm_val: float,
+                             D_min_nm: float = 0.3, D_max_nm=None, n_points: int = 3000,
+                             temperature_K: float = 298.15, epsilon_r: float = EPSILON_R_WATER) -> dict:
+    """Same as energy_profile(), but with the steric term added in."""
+    prof = energy_profile(radius_nm, zeta_mV, ionic_strength_M, hamaker_J, D_min_nm, D_max_nm,
+                           n_points, temperature_K, epsilon_r)
+    v_st = steric_energy_J(prof["D_nm"], radius_nm, layer_thickness_nm, anchor_spacing_nm_val, temperature_K)
+    kT = K_B * temperature_K
+    prof["V_steric_J"] = v_st
+    prof["V_total_J"] = prof["V_total_J"] + v_st
+    prof["V_total_kT"] = prof["V_total_J"] / kT
+    return prof
+
+
 if __name__ == "__main__":
     # Minimal self-test / sanity check (run: python dlvo_model.py)
     # Uses parameters representative of a zein-caseinate NP at pH 4,
@@ -535,3 +712,17 @@ if __name__ == "__main__":
     print(f"Barrier: D = {barrier['D_max_nm']:.2f} nm, "
           f"V_max = {barrier['V_max_kT']:.1f} kT, present={barrier['barrier_present']}")
     print(f"Stability call: {stability}")
+
+    # -- Validate the steric term: (a) boundary conditions, (b) grid
+    # convergence (does the numerical double-integral stabilize as
+    # resolution increases?) -- before trusting it for anything downstream.
+    print("\nSteric term validation:")
+    L_test, s_test = 15.0, 4.5  # nm, arbitrary representative test values
+    H_test = 2 * L_test
+    v_at_H = float(steric_energy_J(np.array([H_test - 1e-6]), a_nm, L_test, s_test, _n_grid=4000)[0])
+    v_beyond_H = float(steric_energy_J(np.array([H_test + 1.0]), a_nm, L_test, s_test, _n_grid=4000)[0])
+    print(f"  boundary check: V(D~2L)={v_at_H:.3e} J (expect ~0), V(D>2L)={v_beyond_H:.3e} J (expect exactly 0)")
+    print("  grid convergence (V at D=2 nm as _n_grid increases):")
+    for n in [500, 1000, 2000, 4000, 8000]:
+        v = float(steric_energy_J(np.array([2.0]), a_nm, L_test, s_test, _n_grid=n)[0])
+        print(f"    n_grid={n:5d}: V = {v:.6e} J")

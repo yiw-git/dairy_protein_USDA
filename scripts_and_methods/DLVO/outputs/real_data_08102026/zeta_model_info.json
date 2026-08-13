@@ -1,0 +1,20 @@
+{
+  "n_conditions": 9,
+  "sigmoid_fit_used": true,
+  "pooled_sigmoid": {
+    "zeta_low_pH_mV": -6.590002743166301,
+    "zeta_high_pH_mV": -25.824020350325338,
+    "pH_iep": 4.939308090570236,
+    "slope": 0.5756695488840786
+  },
+  "hamaker_J": 1e-20,
+  "radius_nm_used_for_sweep": 161.86291666666668,
+  "radius_outlier_conditions": [
+    {
+      "pH": 4.0,
+      "ionic_strength_M": 0.15,
+      "radius_nm_mean": 8000.0,
+      "zeta_mV_mean": 4.926666666666667
+    }
+  ]
+}
