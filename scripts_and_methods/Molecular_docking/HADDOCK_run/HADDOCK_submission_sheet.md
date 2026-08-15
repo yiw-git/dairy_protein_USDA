@@ -131,7 +131,17 @@ Passive (all 21):
 
 Also set **fully flexible segment: 1–21**.
 
-### D5 — κ-casein fragment · `casein/kappa_casein_frag.pdb` · chain A · 64 res
+### D5 — κ-casein fragment · `casein/kappa_casein_frag_compact_rank004.pdb` · chain A · 64 res
+
+> ⚠️ **Input file changed.** The original `kappa_casein_frag.pdb` (AlphaFold
+> rank_001) is a nearly straight rod — Rg 49.0 Å, end-to-end 164.8 Å, i.e. 76%
+> of maximum possible extension, versus ~22 Å expected for a disordered
+> 64-residue random coil. That conformation forced MEGADOCK onto a 294 grid
+> instead of 192 and is a physically improbable single snapshot.
+>
+> **AlphaFold rank_004** of the same sequence is far more realistic —
+> **Rg 27.3 Å, end-to-end 31.1 Å** — and is the recommended input. Sequence
+> verified identical; chain A, residues 1–64, hydrogens stripped.
 
 Passive (all 64):
 

@@ -4,10 +4,10 @@ Companion to [`README.md`](README.md). The README says *what* Method 3C is and *
 This file says **what to type, in what order, starting from zero**, targeting
 **GROMACS + martinize2 running under WSL2 (Ubuntu) on this Windows machine**.
 
-Everything in Sections 1–4 below was **actually executed and verified** against your
-real files (`D1_HDOCK.pdb`, `zein_model.pdb`) with martinize2 / vermouth 0.15.0. The
-bead counts, charges, warnings and the two input problems in Section 1 are measured,
-not assumed.
+Everything in Sections 1–4 below was **actually executed and verified** against your real
+files (`zein_model.pdb`, `whey/beta_whey_clean.pdb`, `D1_HDOCK.pdb`) with martinize2 /
+vermouth 0.15.0. The bead counts, charges, RMSD values and the topology trap in Section 1
+are measured, not assumed.
 
 ---
 
@@ -15,8 +15,9 @@ not assumed.
 
 Three things, in this order. Do not skip ahead.
 
-1. **Fix the input structures** (Section 1). Your current `D1_HDOCK.pdb` will produce a
-   *silently wrong* CG topology. This is the highest-priority item and it costs ~30 min.
+1. **Understand which input file does what** (Section 1). The short version: coarse-grain
+   the clean single-protein files, use the HDOCK output only for the pose. Feeding
+   `D1_HDOCK.pdb` to martinize2 directly produces a *silently wrong* topology. ~30 min.
 2. **Install the environment in WSL2** (Section 2). ~1–2 hours, mostly waiting.
 3. **Run the 1:1 D1 complex end-to-end as a pipeline test** (Sections 3–6). Treat this
    as a plumbing test, *not* a scientific result — the science starts at the multi-copy
@@ -26,9 +27,49 @@ Realistic first milestone: **a 50 ns D1 trajectory that doesn't crash, within on
 
 ---
 
-## 1. Two problems in your current inputs (fix these first)
+## 1. Which input files to use, and why
 
-### 1.1 `D1_HDOCK.pdb` chain A has a 15-residue hole
+### 1.0 The three files, and what each is for
+
+| File | Contents | Role in 3C |
+|---|---|---|
+| `protein_structures/zein_model.pdb` | Zein alone. 234 res, complete, with H. | **Coarse-grain this** — the geometry of zein |
+| `protein_structures/whey/beta_whey_clean.pdb` | β-lactoglobulin alone. 156 res (5–160), complete, with H. | **Coarse-grain this** — the geometry of β-lg |
+| `HDOCK_Huazhong/D1_HDOCK.pdb` | Both proteins in one file: chain A = zein, chain B = β-lg, arranged in the predicted binding pose. | **Placement template only** — where β-lg sits on zein |
+
+The first two are what you *submitted* to HDOCK. The third is what HDOCK *returned*.
+
+**You need both kinds of information.** Method 3C asks whether the docked interface
+survives thermal motion — an interface needs two proteins, so `zein_model.pdb` alone is
+not enough, and β-lactoglobulin has to start in the pose 3B predicted or you are no
+longer testing 3B's answer.
+
+**But only the clean files should be coarse-grained.** Verified by superposition:
+
+```
+zein_model.pdb      vs D1_HDOCK chain A:  215 common Ca,  RMSD 0.000 A
+beta_whey_clean.pdb vs D1_HDOCK chain B:  156 common Ca,  RMSD 0.001 A
+```
+
+HDOCK is rigid-body: it changed nothing inside either protein, only rotated and
+translated them. So `D1_HDOCK.pdb` carries **no structural information you don't already
+have** — its sole unique content is the relative placement of the two chains. Treat it as
+a photograph showing how two people are standing, while the clean files are the
+high-resolution portraits of each person.
+
+The recipe that follows from this (implemented in Stage B):
+
+1. Coarse-grain `zein_model.pdb` and `beta_whey_clean.pdb` separately.
+2. Rotate each into the docked frame by fitting it onto its chain in `D1_HDOCK.pdb`.
+3. Concatenate → the docked complex, built entirely from clean structures.
+
+> **Alternative design, if you'd rather not import the docking pose at all:** place the
+> two proteins several nm apart and let them find each other during the run. That is a
+> legitimate experiment and avoids inheriting any docking bias — but it needs µs-scale
+> sampling and several replicas to say anything, and it decouples 3C from 3B. Not
+> recommended inside a 4–6 week window.
+
+### 1.1 Why not just coarse-grain `D1_HDOCK.pdb` directly — chain A has a 15-residue hole
 
 Chain A (zein) in both `D1_HDOCK.pdb` and `D2_HDOCK.pdb` covers residues **1–230 with
 residues 28–42 missing**, whereas `protein_structures/zein_model.pdb` is complete
@@ -55,11 +96,12 @@ exists to answer — purely as an artifact of the topology.
 
 **Two rules that follow, and they apply to every system you build:**
 
-> **Rule 1.** Repair the chain break before coarse-graining — use the complete
-> `zein_model.pdb` geometry, re-fitted onto the docked pose.
+> **Rule 1.** Never coarse-grain the HDOCK output. Coarse-grain the clean single-protein
+> files (`zein_model.pdb`, `beta_whey_clean.pdb`) and import only the *pose* from
+> `D1_HDOCK.pdb`. This sidesteps the gap entirely — nothing needs repairing.
 >
-> **Rule 2.** Run martinize2 **once per protein chain, on a single-chain PDB**, never on
-> the multi-chain complex. Assemble the complex afterwards from the CG coordinates. This
+> **Rule 2.** Run martinize2 **once per protein, on a single-chain PDB**, never on a
+> multi-chain complex. Assemble the complex afterwards from the CG coordinates. This
 > makes cross-chain elastic bonds structurally impossible.
 
 Section 7.1 gives a one-line check to confirm you never violate Rule 2.
@@ -191,59 +233,64 @@ all succeed.
 
 ---
 
-## 3. Stage B — Repair the D1 structure
+## 3. Stage B — Put the clean structures into the docked pose
 
 Working directory for this stage:
 
 ```bash
 mkdir -p ~/cgmd/D1 && cd ~/cgmd/D1
 SRC=/mnt/c/Users/nnjj1/UMD-work/dairy_protein_USDA/scripts_and_methods/Molecular_docking
-cp $SRC/HADDOCK/D1_HDOCK.pdb .
+cp $SRC/HDOCK_Huazhong/D1_HDOCK.pdb .
 cp $SRC/protein_structures/zein_model.pdb .
+cp $SRC/protein_structures/whey/beta_whey_clean.pdb .
 ```
 
-The repair: superpose the complete `zein_model.pdb` onto the docked chain A using the
-shared Cα atoms, then keep the complete zein coordinates plus the docked chain B. Save
-this as `repair.py`:
+You are **not repairing anything**. Both clean files are already complete; all you're
+doing is rotating each one into the frame `D1_HDOCK.pdb` defines. Save as `pose.py`:
 
 ```python
-from Bio.PDB import PDBParser, PDBIO, Superimposer, Select, Structure, Model
+from Bio.PDB import PDBParser, PDBIO, Superimposer
 
 p = PDBParser(QUIET=True)
 dock = p.get_structure('d', 'D1_HDOCK.pdb')[0]
-full = p.get_structure('f', 'zein_model.pdb')[0]
 
-dA, fA = dock['A'], full['A']
-shared = [r.id[1] for r in dA if r.id[1] in {x.id[1] for x in fA}]
-sup = Superimposer()
-sup.set_atoms([dA[i]['CA'] for i in shared], [fA[i]['CA'] for i in shared])
-print(f"fitted on {len(shared)} Ca atoms, RMSD {sup.rms:.3f} A")
-sup.apply(list(full.get_atoms()))
+def place(clean_file, dock_chain, out, chain_id):
+    ref = p.get_structure('r', clean_file)
+    mob = ref[0]['A']
+    dc = dock[dock_chain]
+    ids = [r.id[1] for r in dc
+           if r.id[1] in {x.id[1] for x in mob} and 'CA' in dc[r.id[1]] and 'CA' in mob[r.id[1]]]
+    sup = Superimposer()
+    sup.set_atoms([dc[i]['CA'] for i in ids], [mob[i]['CA'] for i in ids])   # fixed, moving
+    print(f"{clean_file}: fitted on {len(ids)} Ca, RMSD {sup.rms:.3f} A")
+    sup.apply(list(ref.get_atoms()))
+    mob.id = chain_id
+    io = PDBIO(); io.set_structure(ref); io.save(out)
 
-st = Structure.Structure('c'); m = Model.Model(0); st.add(m)
-fA.id = 'A'; m.add(fA)
-b = dock['B']; b.detach_parent(); b.id = 'B'; m.add(b)
-
-class Sel(Select):
-    def accept_residue(self, r): return r.id[0] == ' '
-
-io = PDBIO(); io.set_structure(st); io.save('D1_repaired.pdb', Sel())
+place('zein_model.pdb',       'A', 'zein.pdb', 'A')
+place('beta_whey_clean.pdb',  'B', 'blg.pdb',  'B')
 ```
 
 ```bash
-python repair.py
+python pose.py
 ```
 
-**Expect:** RMSD well under 0.5 Å (the docked chain A *is* this model, just truncated —
-a large RMSD means something is wrong, stop and investigate). Output `D1_repaired.pdb`:
-4874 atoms, chain A = 3641 (zein 1–234, no gaps), chain B = 1233 (β-lg 5–160).
+**Expect RMSD ≈ 0.000 Å for both.** That is the signature of rigid-body docking and
+confirms the clean file and the docked chain are the same structure. Anything above
+~0.5 Å means you have paired the wrong file with the wrong chain — stop and check.
 
-Now split into single-chain files (Rule 2):
+Result: `zein.pdb` (234 residues, complete — no gap, unlike HDOCK's copy) and `blg.pdb`
+(156 residues), both sitting in the docked arrangement, as two separate single-chain
+files ready for Rule 2.
 
-```bash
-awk '/^ATOM/ && substr($0,22,1)=="A"' D1_repaired.pdb > zein.pdb; echo END >> zein.pdb
-awk '/^ATOM/ && substr($0,22,1)=="B"' D1_repaired.pdb > blg.pdb;  echo END >> blg.pdb
-```
+For **D2** (zein–α-lactalbumin) the same script works with `D2_HDOCK.pdb` and
+`whey/alpha_whey_clean.pdb`.
+
+**Verified reconstruction:** heavy-atom minimum distance between the placed chains is
+1.12 Å with 560 contacts under 5 Å — identical to the original `D1_HDOCK.pdb` pose, so
+the interface is faithfully reproduced. Note that 1.12 Å is a mild steric clash, present
+in HDOCK's own output (rigid-body docking doesn't relax the interface). It disappears in
+the CG mapping and energy minimisation, but it's the reason **EM is not optional** here.
 
 ### pH: do this here, before martinize2
 
@@ -267,7 +314,7 @@ with default protonation — verified net charges from the CG topology: **zein +
 
 Only when you move to a **different pH** (e.g. near β-lg's pI ≈ 5.2) do you need to
 rename residues in the PDB to neutral forms first, guided by PROPKA3 or the
-[H++ server](http://newbiophysics.cs.vt.edu/H++/index.php) on `D1_repaired.pdb`.
+[H++ server](http://newbiophysics.cs.vt.edu/H++/index.php) on `zein.pdb` and `blg.pdb`.
 
 ---
 
@@ -588,8 +635,14 @@ The README is sound on strategy. Four things need updating from what was verifie
    `-dssp`.
 3. **§3 Step 1** — must state explicitly: **one martinize2 run per chain**, never on the
    docked complex. This is the difference between a valid and an invalid study.
-4. **§3 Step 0** — must state that the HDOCK poses have a 15-residue gap in zein that
-   needs repairing before use.
+4. **§3 Step 0** — currently says "start from the HDOCK best-pose complexes". That is
+   misleading. Coarse-grain the **clean single-protein files** (`zein_model.pdb`,
+   `whey/beta_whey_clean.pdb`) and use the HDOCK output only as a placement template.
+   HDOCK's copy of zein is missing residues 28–42 and has no hydrogens; the clean files
+   are complete, and because HDOCK is rigid-body (verified, RMSD 0.000 Å) they carry
+   exactly the same structure.
+5. **Paths** — the docking outputs now live in `../Molecular_docking/HDOCK_Huazhong/`,
+   not `../Molecular_docking/HADDOCK/`. The README's links are stale.
 
 ---
 
