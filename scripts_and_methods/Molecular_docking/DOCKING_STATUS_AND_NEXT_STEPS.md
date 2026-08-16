@@ -1,7 +1,15 @@
 # Molecular docking — status, verification, and next steps
 
 Section 3.1.3 / Method 3B · zein nanoparticle + milk protein corona
-Prepared 2026-08-12 · summarises the full review of the MEGADOCK results
+Prepared 2026-08-12 · last revised 2026-08-15
+Summarises the full review of the MEGADOCK results and the decision to close
+the docking leg.
+
+> **Reading note.** This document was written incrementally as the review
+> progressed, so Sections 4–5c record recommendations that later evidence
+> overturned. They are kept for provenance. **Section 6 is the current
+> conclusion** — where an earlier section conflicts with it, Section 6 wins.
+> Superseded material is marked in place.
 
 ---
 
@@ -21,9 +29,19 @@ The AlphaFold model has mean pLDDT 49 and essentially no hydrophobic core.
 Re-running the same structure through a different docking server will not
 improve the answer.
 
-**Therefore the highest-value next step is not HADDOCK.** It is a zein-model
-sensitivity test (Section 6), which costs about an hour and determines whether
-any of the ranking is interpretable at all.
+**Conclusion: the docking leg is closed** (Section 6). Three independent,
+measured reasons show rigid-body docking cannot resolve milk-protein
+selectivity on a zein nanoparticle:
+
+| # | Reason | Key number |
+|---|---|---|
+| 1 | The full-length zein model is not reproducible | cross-model Cα RMSD **13.7–21.5 Å** |
+| 2 | The 40-residue restraint set was not a contiguous surface | span **92.8 Å**; interfaces of only **3–6 residues** |
+| 3 | The one high-confidence region is a generic α-helix | RMSD to an *ideal* poly-Ala helix **0.59 Å** — same as the cross-model RMSD |
+
+No further docking runs are planned. The question moves to coarse-grained MD
+(Section 3C), which is where `README.md` always placed the nanoparticle
+physics. Section 6 contains a manuscript-ready statement of the result.
 
 ---
 
@@ -303,7 +321,11 @@ arbitrary conformer and cannot be generalised. **Full-model docking is not
 salvageable** — running it four more times would only produce four more
 incomparable answers.
 
-### Finding 2 — the 84–115 helix IS reproducible
+### Finding 2 — ⚠️ WITHDRAWN: the helix "convergence" is circular
+
+*The original version of this section claimed the 84–115 helix was structurally
+reliable because the five models agree on it. That claim does not survive
+scrutiny and is retracted. The measurements are kept below with the correction.*
 
 Same calculation restricted to residues 84–115:
 
@@ -315,10 +337,38 @@ Same calculation restricted to residues 84–115:
 | **r004** | 0.7 | 0.5 | 0.3 | 0.0 | 1.0 |
 | **r005** | 0.5 | 1.1 | 0.8 | 1.0 | 0.0 |
 
-**0.3–1.1 Å across five independent predictions.** Despite total disagreement
-about the global fold, all five models converge on this helix. It is the one
-part of α-zein AlphaFold genuinely resolves, and therefore **the only
-defensible zein docking input.**
+**0.3–1.1 Å across five independent predictions.**
+
+**Why this is not evidence of anything.** Region 84–115 is **100% α-helix**
+(φ/ψ SD 2.7°/3.2°; rise 1.45 Å vs ideal 1.50; radius 2.32 Å vs ideal 2.30).
+Superimposing each model onto a **generic ideal poly-alanine α-helix** of the
+same length gives:
+
+| Model | RMSD to a plain ideal helix |
+|---|---|
+| rank_001 | 0.60 Å |
+| rank_002 | 0.42 Å |
+| rank_003 | 0.47 Å |
+| rank_004 | 0.48 Å |
+| rank_005 | 0.98 Å |
+| **mean** | **0.59 Å** |
+
+The agreement with a *generic* helix is the same magnitude as the agreement
+*between models*. Any two α-helices of equal length superimpose to ~0.5 Å
+regardless of sequence. So the five models agree here because **a helix is a
+helix** — this is **secondary-structure** confidence, which carries no
+tertiary-structure information at all.
+
+**Consequence for docking:** a 32-residue helix is a smooth cylinder with no
+pocket, groove or concavity. Shape-complementarity scoring (which dominates
+MEGADOCK's function) is then rotationally degenerate about the helix axis and
+translationally degenerate along it — a flat score landscape that reproduces
+"no discrimination between ligands" for a new reason.
+
+Note also that **70% of the full-length model is helical**. α-zein is a bundle
+of helices whose *packing* is the part AlphaFold cannot determine — consistent
+with the classic Argos model of antiparallel helices joined by Gln-rich turns.
+The information a binding surface depends on is precisely the missing part.
 
 ### Finding 3 — the 37–39 result is confirmed as a geometric artefact
 
@@ -407,53 +457,84 @@ poor starting conformer. A better starting point still gives a better result.
 
 ---
 
-## 6. Recommended priority order
+## 6. Conclusion — the docking leg is complete
 
-### Priority 1 — ~~Fix or drop κ-casein~~ ✅ DONE (see 5c)
+**Decision: no further docking runs.** Three independent, measured reasons show
+that rigid-body protein–protein docking cannot answer the corona question for a
+zein nanoparticle. Additional runs would produce more instances of the same
+uninformative result, not new information.
 
-Either regenerate a compact conformer (so it docks on a 192 grid like the
-others) or exclude it and say why.
+### The three reasons, with the supporting numbers
 
-### Priority 2 — HADDOCK on the helix, all five ligands
+| # | Problem | Evidence | Consequence |
+|---|---|---|---|
+| **1** | The full-length zein model is not reproducible | Cross-model Cα RMSD **13.7–21.5 Å** over five ColabFold predictions | Any result on one model is conformer-specific and ungeneralisable |
+| **2** | The restraint set was not a surface | 40 allowed residues spanning **92.8 Å**, scattered; interfaces of only **3–6 residues** vs 20–30 normal | Ligands perch on the most protruding bump; scores reflect geometry, not chemistry |
+| **3** | The confident region carries no tertiary information | 84–115 is **100% α-helix**; RMSD to a *generic* ideal helix **0.59 Å**, same magnitude as the cross-model RMSD | A smooth cylinder is rotationally and translationally degenerate under shape-complementarity scoring |
 
-**This recommendation changed.** An earlier draft proposed replicating MEGADOCK
-on the *full* model with active = 37,38,39. Finding 1 (13.7–21.5 Å RMSD between
-conformers) makes that pointless: it would replicate a conformer-specific
-artefact. Finding 3 already explains the 37–39 result, so there is nothing left
-to confirm.
+Reason 3 is the one that closes the door, and there was no third option: the
+full model is unreliable, and the only reliable part is reliable *because* it
+is a generic helix — which is exactly what makes it useless as a receptor.
 
-Use `zein_helix_84_115.pdb` — justified now by convergence across five
-independent predictions (0.3–1.1 Å), not merely by pLDDT. Active/passive lists
-and run settings are in `HADDOCK_run/HADDOCK_submission_sheet.md`:
+### What can legitimately be reported
 
-- **PATCH-N** `88,92,95` (10.3 Å) — HIS/GLN/ARG, the only charged patch
-- **PATCH-C** `106,110,113,114` (12.3 Å) — ASN/TYR/GLN/GLN, Gln-rich
-- Ligands: active empty, passive = full surface; casein fragments fully flexible
+> Protein–protein docking was used to screen five milk proteins
+> (β-lactoglobulin, α-lactalbumin, and α_s1-, β- and κ-casein fragments)
+> against a predicted α-zein surface. MEGADOCK PPI E-scores spanned 5.16–5.82
+> with no ligand distinguishable from the others. Restricting the receptor to
+> 40 solvent-exposed residues produced interfaces of only 3–6 residues, and the
+> top poses of all five ligands converged on residues 37–39 — the most
+> protruding accessible cluster in 4 of 5 independent structure predictions —
+> indicating that the result is governed by surface geometry rather than
+> specific molecular recognition. Comparison of the five ColabFold models
+> (global Cα RMSD 13.7–21.5 Å) showed that full-length α-zein is not reliably
+> predictable; the only high-confidence segment (residues 84–115) is a
+> canonical α-helix that superimposes on a generic ideal poly-alanine helix to
+> 0.59 Å, i.e. it reflects secondary-structure confidence and provides no
+> tertiary-structure information usable for docking. We therefore conclude that
+> rigid-body docking cannot resolve milk-protein selectivity on a zein
+> nanoparticle surface — a result consistent with non-specific, multivalent
+> corona formation — and that the question requires the coarse-grained MD
+> approach of Section 3C.
 
-### Priority 3 — Write up the negative result
+A **negative result with a mechanism**, not a failed experiment. It is also the
+strongest available justification for the CG-MD investment.
 
-It is a legitimate finding, and it is now *explained* rather than merely
-observed:
+Also state the Section 9 assumptions from `README.md` explicitly.
 
-> Rigid-body docking of five milk proteins against a predicted α-zein model
-> produced PPI E-scores of 5.5–5.8 with no ligand distinguishable from the
-> others. Restricting the receptor to 40 solvent-exposed residues spanning
-> 92.8 Å yielded interfaces of only 3–6 residues, and the top poses of all five
-> ligands converged on residues 37–39 — the most protruding accessible cluster
-> in 4 of 5 independent structure predictions. The result therefore reflects
-> surface geometry rather than specific recognition, consistent with
-> non-specific multivalent corona formation. Comparison of the five ColabFold
-> models (global Cα RMSD 13.7–21.5 Å) further shows that full-length α-zein is
-> not reliably predictable; only the 84–115 helix converges (0.3–1.1 Å) and was
-> carried forward.
+### What docking did deliver
 
-State the Section 9 assumptions from `README.md` explicitly.
+- The ranking is **non-discriminating** — no milk protein dominates the corona
+  through specific binding, itself consistent with the corona literature
+- Two orthogonal methods (MEGADOCK blocked, HDOCK unrestricted) agreed on
+  α-lactalbumin > β-lactoglobulin, showing the ordering is insensitive to
+  surface restriction — a hint that it is driven by generic properties such as
+  size and shape rather than a real interface
+- A fully documented set of assumptions and failure modes for the methods
+  section
 
-### Priority 5 — Coarse-grained MD (Section 3C)
+### Handoff to Section 3C (coarse-grained MD)
 
-Per `README.md`, this is where the nanoparticle physics actually lives —
-crowding, curvature, multivalency, avidity. Docking was always scoped as the
-cheap screen that points CG-MD at the right question. That handoff is now due.
+Per `README.md`, CG-MD is where the nanoparticle physics lives — crowding,
+curvature, multivalency, avidity. The docking work now defines precisely what
+CG-MD must supply that docking could not:
+
+1. **A real surface, not a single chain.** α-zein is ~70% helical; a
+   nanoparticle surface is a raft of packed helices, and it is the *packing*
+   that AlphaFold cannot predict. CG-MD must generate or assume it explicitly.
+2. **Conformational ensembles, not single snapshots.** Both zein and the casein
+   fragments are disordered; one frozen conformer was never the right unit.
+3. **Multivalency and avidity.** Many milk proteins gripping one particle at
+   once — structurally unrepresentable in pairwise docking.
+4. **Solution conditions.** pH and ionic strength, which web docking cannot
+   set, and which matter for the phosphorylated casein regions.
+
+### Loose ends (optional, low cost)
+
+- α_s1-casein is a rod in all five predictions, and D3/D4 lack phosphate groups
+  (see 5c) — record both in limitations
+- `HADDOCK_run/` and `docking_trials/Megadocking/zein84_115/` are fully prepared
+  but deliberately unused; retained for provenance and marked superseded
 
 ---
 
@@ -465,8 +546,14 @@ cheap screen that points CG-MD at the right question. That handoff is now due.
 | **HDOCK** | ⏹️ discontinued | Whole-chain only; cannot exclude buried regions; 2 of 5 runs done (D1, D2) |
 | **ClusPro** | ⏹️ skip | A third rigid-body FFT server adds nothing new |
 | **LightDock** | ⏹️ abandoned | 20+ h/pair on CPU; superseded by MEGADOCK |
-| **HADDOCK** | 🟡 optional | Only tool offering restraints + flexibility + explicit solvent |
-| **CG-MD (3C)** | ➡️ next | Where the nanoparticle physics belongs |
+| **HADDOCK** | ⏹️ prepared, not run | Inputs ready in `HADDOCK_run/`, but the only defensible receptor is a generic α-helix — see Section 6, reason 3 |
+| **MEGADOCK on helix 84–115** | ⏹️ prepared, not run | 5 notebooks ready in `docking_trials/Megadocking/zein84_115/`; same reason |
+| **CG-MD (3C)** | ➡️ **next** | Where the nanoparticle physics belongs |
+
+**Bottom line:** the docking leg is closed. Every remaining path leads back to
+the same limitation — no reliable tertiary structure for the zein surface — and
+that is a modelling problem CG-MD exists to solve, not one another docking
+server can fix.
 
 ---
 

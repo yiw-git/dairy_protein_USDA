@@ -1,130 +1,153 @@
-# CG-MD (Method 3C) — Step-by-Step Start Guide
+# CG-MD (Method 3C) — Step-by-Step Setup Guide
+
+**Target system: a flat zein/water interface (a local patch of the nanoparticle surface)
+with α-lactalbumin adsorbing onto it from solution. One condition: pH 5.5, ~80 mM NaCl,
+298 K. No other proteins.**
 
 Companion to [`README.md`](README.md). The README says *what* Method 3C is and *why*.
-This file says **what to type, in what order, starting from zero**, targeting
-**GROMACS + martinize2 running under WSL2 (Ubuntu) on this Windows machine**.
+This file says **what to type, in what order, starting from zero**, on **WSL2 (Ubuntu)**.
 
-Everything in Sections 1–4 below was **actually executed and verified** against your real
-files (`zein_model.pdb`, `whey/beta_whey_clean.pdb`, `D1_HDOCK.pdb`) with martinize2 /
-vermouth 0.15.0. The bead counts, charges, RMSD values and the topology trap in Section 1
-are measured, not assumed.
-
----
-
-## 0. Where to start — the short answer
-
-Three things, in this order. Do not skip ahead.
-
-1. **Understand which input file does what** (Section 1). The short version: coarse-grain
-   the clean single-protein files, use the HDOCK output only for the pose. Feeding
-   `D1_HDOCK.pdb` to martinize2 directly produces a *silently wrong* topology. ~30 min.
-2. **Install the environment in WSL2** (Section 2). ~1–2 hours, mostly waiting.
-3. **Run the 1:1 D1 complex end-to-end as a pipeline test** (Sections 3–6). Treat this
-   as a plumbing test, *not* a scientific result — the science starts at the multi-copy
-   patch in Section 8.
-
-Realistic first milestone: **a 50 ns D1 trajectory that doesn't crash, within one week.**
-
----
-
-## 1. Which input files to use, and why
-
-### 1.0 The three files, and what each is for
-
-| File | Contents | Role in 3C |
-|---|---|---|
-| `protein_structures/zein_model.pdb` | Zein alone. 234 res, complete, with H. | **Coarse-grain this** — the geometry of zein |
-| `protein_structures/whey/beta_whey_clean.pdb` | β-lactoglobulin alone. 156 res (5–160), complete, with H. | **Coarse-grain this** — the geometry of β-lg |
-| `HDOCK_Huazhong/D1_HDOCK.pdb` | Both proteins in one file: chain A = zein, chain B = β-lg, arranged in the predicted binding pose. | **Placement template only** — where β-lg sits on zein |
-
-The first two are what you *submitted* to HDOCK. The third is what HDOCK *returned*.
-
-**You need both kinds of information.** Method 3C asks whether the docked interface
-survives thermal motion — an interface needs two proteins, so `zein_model.pdb` alone is
-not enough, and β-lactoglobulin has to start in the pose 3B predicted or you are no
-longer testing 3B's answer.
-
-**But only the clean files should be coarse-grained.** Verified by superposition:
-
-```
-zein_model.pdb      vs D1_HDOCK chain A:  215 common Ca,  RMSD 0.000 A
-beta_whey_clean.pdb vs D1_HDOCK chain B:  156 common Ca,  RMSD 0.001 A
-```
-
-HDOCK is rigid-body: it changed nothing inside either protein, only rotated and
-translated them. So `D1_HDOCK.pdb` carries **no structural information you don't already
-have** — its sole unique content is the relative placement of the two chains. Treat it as
-a photograph showing how two people are standing, while the clean files are the
-high-resolution portraits of each person.
-
-The recipe that follows from this (implemented in Stage B):
-
-1. Coarse-grain `zein_model.pdb` and `beta_whey_clean.pdb` separately.
-2. Rotate each into the docked frame by fitting it onto its chain in `D1_HDOCK.pdb`.
-3. Concatenate → the docked complex, built entirely from clean structures.
-
-> **Alternative design, if you'd rather not import the docking pose at all:** place the
-> two proteins several nm apart and let them find each other during the run. That is a
-> legitimate experiment and avoids inheriting any docking bias — but it needs µs-scale
-> sampling and several replicas to say anything, and it decouples 3C from 3B. Not
-> recommended inside a 4–6 week window.
-
-### 1.1 Why not just coarse-grain `D1_HDOCK.pdb` directly — chain A has a 15-residue hole
-
-Chain A (zein) in both `D1_HDOCK.pdb` and `D2_HDOCK.pdb` covers residues **1–230 with
-residues 28–42 missing**, whereas `protein_structures/zein_model.pdb` is complete
-(1–234, no gaps). HDOCK dropped that loop.
-
-martinize2 does not error on this. It treats the break as two chain ends, caps both with
-charged termini, and **regroups the fragments** — so you get physically wrong molecules.
-
-### 1.2 The consequence: elastic bonds weld zein to β-lactoglobulin
-
-Running the README's Step-1 command directly on `D1_HDOCK.pdb` produced two molecule
-topologies — and neither one is "zein" or "β-lactoglobulin":
-
-| Output | Contents | Beads |
-|---|---|---|
-| `molecule_0.itp` | zein residues **1–27 fused with all of β-lactoglobulin** | 414 |
-| `molecule_1.itp` | zein residues 43–230 | 421 |
-
-Because zein 1–27 and β-lg ended up inside one `[ moleculetype ]`, the elastic network
-was applied *across the docking interface*: **12 harmonic bonds at 700 kJ mol⁻¹ nm⁻²
-directly tie the zein fragment to β-lactoglobulin.** Those bonds never break. The
-simulation would report a perfectly persistent interface — the exact question Method 3C
-exists to answer — purely as an artifact of the topology.
-
-**Two rules that follow, and they apply to every system you build:**
-
-> **Rule 1.** Never coarse-grain the HDOCK output. Coarse-grain the clean single-protein
-> files (`zein_model.pdb`, `beta_whey_clean.pdb`) and import only the *pose* from
-> `D1_HDOCK.pdb`. This sidesteps the gap entirely — nothing needs repairing.
+> ### Verification status — read this before trusting a number
 >
-> **Rule 2.** Run martinize2 **once per protein, on a single-chain PDB**, never on a
-> multi-chain complex. Assemble the complex afterwards from the CG coordinates. This
-> makes cross-chain elastic bonds structurally impossible.
-
-Section 7.1 gives a one-line check to confirm you never violate Rule 2.
-
-### 1.3 A judgement call to make now, not later
-
-`zein_model.pdb` residues 1–~21 (`MAAKIFCLLMLLGLSASAATA`) are the **signal peptide**,
-which is cleaved in mature α-zein. It is strongly hydrophobic, so leaving it in gives you
-a sticky artificial patch that will preferentially grab milk protein and skew every
-contact metric.
-
-Your docking (3B) was run *with* it, so removing it now means 3B and 3C use different
-molecules. Neither choice is free:
-
-- **Keep it** → consistent with 3B, but a known artifact you must declare in the write-up.
-- **Strip residues 1–21** → physically correct, but you should re-dock to keep 3B/3C aligned.
-
-Decide before building, write the decision down, and keep it fixed across all conditions.
-(The steps below keep it, to stay consistent with your existing docking.)
+> **✅ VERIFIED — actually executed against your real files** (martinize2 / vermouth 0.15.0,
+> pdb2pqr 3.x): everything in **Stages A, B and C** (Sections 3–5). Bead counts, net
+> charges, disulfide detection, the `nan` trap, the force-field capitalisation bug, and
+> the starting Rg values are measured.
+>
+> **📐 DESIGN ONLY — arithmetic and literature, not yet run**: everything in
+> **Stages V, 1, 2, 3 and 4** (Sections 6–10). Box sizes, chain counts, densities and
+> solvent ratios are calculated; the GROMACS commands are written from standard practice
+> but have **not** been executed. Expect to debug them. Section 13 lists what to watch.
 
 ---
 
-## 2. Stage A — Set up WSL2
+## 0. The design, in one page
+
+### 0.1 Why a surface patch and not a particle
+
+A real 60 nm zein nanoparticle contains **~3,300 chains ≈ 1.7 million protein beads**, and
+with water **10–20 million beads total**. That is not a hardware problem you can solve by
+moving to HPC — the sampling you need (µs of adsorption) would take months of cluster
+time, and you would still have to *assume* how 3,300 chains pack, which nobody knows.
+
+You don't need the particle. α-lactalbumin is ~4 nm across; it only ever "sees" the 8–10 nm
+of surface it touches. Over that window a 60 nm sphere is indistinguishable from a plane:
+
+| Observation window | Deviation of a 60 nm sphere from flat |
+|---|---|
+| 8 nm | 0.27 nm |
+| **10 nm** | **0.42 nm** |
+| 15 nm | 0.95 nm |
+
+One Martini bead is **~0.47 nm** in diameter. **At the scale the protein actually samples,
+the curvature is smaller than a single bead.** A flat slab is therefore not a compromise
+forced by compute — it is physically equivalent at this length scale, and that claim has a
+number behind it.
+
+### 0.2 Why zein must be a condensed phase, not a dissolved monomer
+
+α-zein is a prolamin: **insoluble in water**, soluble in ~60–95% aqueous ethanol. A single
+zein chain freely dissolved in water is not a state that exists. Any design that starts one
+zein chain and one milk protein in water and lets them meet is simulating a non-existent
+system.
+
+In water, zein is a **dense amorphous phase**. That is what the slab represents.
+
+We model the **product**, not the **process** — the guide does not simulate antisolvent
+precipitation (millisecond timescales, mid-run solvent exchange). This is the same logic as
+studying a crystal surface without simulating crystallisation. Stage V tests whether the
+force field reproduces the solubility behaviour that justifies this.
+
+### 0.3 The geometry
+
+Cross-section in z; x and y are periodic, so the surface is effectively infinite:
+
+```
+   ┌─────────────────────────────────┐  z = 18 nm
+   │                                 │
+   │   water + 80 mM NaCl            │
+   │       ● α-LA      ● α-LA        │  <- milk protein, >= 3 nm off the surface
+   │                                 │
+   ├─────────────────────────────────┤  <- interface = "the NP surface"
+   │#################################│
+   │###  dense zein, ~25 chains  ####│     6 nm thick, 1.25 g/cm3
+   │#################################│
+   ├─────────────────────────────────┤  <- second interface (a free replicate)
+   │   water + NaCl                  │
+   └─────────────────────────────────┘  z = 0
+     |<-------- 12 nm, periodic ------->|
+```
+
+Periodic x/y means this 12 × 12 nm patch has **no edges** — which removes the edge
+artifacts a finite cluster would suffer. You also get **two independent interfaces** per
+box, top and bottom, for free.
+
+### 0.4 The five stages
+
+| Stage | System | Beads | Purpose |
+|---|---|---|---|
+| **V1/V2** | 1 zein chain in water / in 80% ethanol | ~22,000 each | **Force-field validation.** Does Martini 3 reproduce zein's water-insolubility? |
+| **1** | ~25 zein chains, no solvent | ~13,000 | Build the dense amorphous phase |
+| **2** | slab + water + ions | ~27,500 | Create and equilibrate the interface |
+| **3** | + 2–4 α-lactalbumin | ~29,000 | **The experiment.** Adsorption |
+| **4** | — | — | Analysis |
+
+**Do V1/V2 first.** They are the cheapest runs and they can invalidate everything downstream.
+
+---
+
+## 1. Why no docking pose is used
+
+Your [`../Molecular_docking/DOCKING_STATUS_AND_NEXT_STEPS.md`](../Molecular_docking/DOCKING_STATUS_AND_NEXT_STEPS.md)
+Section 6 closes the docking leg:
+
+- **MEGADOCK poses are geometric artifacts** — the α-lactalbumin top pose has a
+  **3-residue interface** (normal is 20–30), the receptor was `zein_blocked.pdb` so the
+  ligand could not land elsewhere, and the convergence on residues 37–39 tracks protrusion,
+  not chemistry.
+- **HDOCK `D2_HDOCK.pdb`** is the least bad pose available (−315.32, confidence 0.96) but
+  sits on **one** zein conformer out of five differing by **13.7–21.5 Å** Cα RMSD.
+- Importing any pose and applying a structural bias would hold the interface together *by
+  construction* — you would measure your own assumption.
+
+There is also a subtler reason the docking poses cannot transfer here: **docking used the
+surface of an isolated chain.** The slab's surface is what ~25 chains expose *after*
+rearranging at a water interface — hydrophobic residues retract, polar residues turn
+outward. These are very likely different surfaces. Producing the second one is itself a
+result (Stage 2).
+
+---
+
+## 2. Stage A — Set up WSL2 ✅
+
+> ### Which terminal am I in?
+>
+> **Only step A1 runs in Windows PowerShell. Everything else in this entire guide runs in
+> the Ubuntu terminal.**
+>
+> Tell them apart by the prompt:
+>
+> ```
+> PS C:\Users\nnjj1>           <- PowerShell (Windows)
+> nnjj1@DESKTOP-ABC123:~$      <- Ubuntu (WSL2)   <-- you want this one
+> ```
+>
+> Open Ubuntu from the Start menu, or type `wsl` in PowerShell.
+>
+> **What `/mnt/c/` means.** WSL2 automatically mounts your Windows C: drive at `/mnt/c/`,
+> so the same folder has two addresses pointing at *the same files*:
+>
+> ```
+> Windows:  C:\Users\nnjj1\UMD-work\dairy_protein_USDA\        (backslashes)
+> Ubuntu:   /mnt/c/Users/nnjj1/UMD-work/dairy_protein_USDA/    (forward slashes)
+> ```
+>
+> Edit in one, the change appears in the other immediately.
+>
+> **But use `/mnt/c/` only to fetch inputs and deposit results — never to run simulations.**
+> WSL2 cross-filesystem I/O is slow enough to matter over hundreds of ns. Copy structures
+> to `~/cgmd/` (the Linux-native home directory, i.e. `/home/<your-username>/cgmd/`), run
+> there, copy results back at the end.
 
 ### A1. Install Ubuntu (Windows PowerShell, as Administrator)
 
@@ -132,526 +155,637 @@ Decide before building, write the decision down, and keep it fixed across all co
 wsl --install -d Ubuntu
 ```
 
-Reboot if prompted, then open **Ubuntu** from the Start menu and create your Linux
-username/password. Everything from here is typed in the Ubuntu terminal.
+Reboot if prompted, open **Ubuntu** from the Start menu, create your Linux user.
 
-### A2. Confirm you can see your project folder
-
-Windows drives are mounted under `/mnt/c/`:
+### A2. Check you can see the project
 
 ```bash
 ls /mnt/c/Users/nnjj1/UMD-work/dairy_protein_USDA/scripts_and_methods
 ```
 
-You should see `Coarsed_grained_MD  DLVO  Molecular_docking`.
-
-> **Performance warning:** do **not** run simulations on `/mnt/c/`. Cross-filesystem I/O
-> in WSL2 is slow enough to matter over hundreds of ns. Work in the Linux filesystem
-> (`~/cgmd/`) and copy final outputs back to `/mnt/c/...` at the end.
+> **Do not run simulations on `/mnt/c/`.** WSL2 cross-filesystem I/O is slow enough to
+> matter over hundreds of ns. Work in `~/cgmd/`, copy results back at the end.
 
 ### A3. System packages
 
+> **Two layers — don't mix them up.** A3 and A4 install into the Linux system itself; the
+> Python virtual environment is not created until A5 and is **not** used here.
+>
+> | Layer | Command | Installs to | `sudo`? | venv? |
+> |---|---|---|---|---|
+> | System | `sudo apt install` | the whole Linux system | yes | **no** |
+> | Python | `pip install` | the virtual environment | **no** | yes |
+>
+> `build-essential`, `cmake`, `wget`, `git`, `unzip` are compilers and CLI tools, not Python
+> packages. `python3-pip` and `python3-venv` are the tools *used to create* a virtual
+> environment, so they must exist system-wide first — you cannot install them inside a venv
+> that doesn't exist yet. GROMACS (A4) is likewise a compiled C++ program, unrelated to
+> Python.
+>
+> **If you ever type `sudo pip install`, something has gone wrong.**
+
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y build-essential cmake wget git python3-pip python3-venv
+sudo apt install -y build-essential cmake wget git unzip python3-pip python3-venv
 ```
 
 ### A4. GROMACS
 
-Start with the packaged build — it is CPU-only but takes two minutes instead of an hour,
-and it is enough to get through Section 6:
-
 ```bash
 sudo apt install -y gromacs
 gmx --version
+nvidia-smi          # if this prints a GPU table, a CUDA build is worth doing later
 ```
 
-Check the printed version is **2023.x or newer** and note whether it says GPU support is
-enabled (with the apt package it will not be).
+CPU-only, installs in two minutes, sufficient for every stage in this guide.
 
-**Do you have an NVIDIA GPU?** Check:
-
-```bash
-nvidia-smi
-```
-
-If that prints a GPU table, WSL2 can use CUDA and it is worth building a GPU-enabled
-GROMACS later (see [the install guide](https://manual.gromacs.org/documentation/current/install-guide/index.html),
-current release 2026.3). Don't do it now — get the pipeline working on CPU first, then
-optimize. Section 9 has the honest performance numbers.
-
-### A5. Python tools (martinize2 + analysis)
+### A5. Python tools — create the virtual environment here
 
 ```bash
-python3 -m venv ~/cgmd-env
-source ~/cgmd-env/bin/activate
+python3 -m venv ~/cgmd-env          # create it
+source ~/cgmd-env/bin/activate      # activate it
 pip install --upgrade pip
-pip install vermouth mdtraj MDAnalysis numpy scipy matplotlib biopython
-martinize2 --version
+pip install vermouth mdtraj MDAnalysis pdb2pqr numpy scipy matplotlib
+martinize2 --version     # expect: martinize with vermouth 0.15.x
+pdb2pqr30 --version
 ```
 
-Expect `martinize with vermouth 0.15.x`. **Add `source ~/cgmd-env/bin/activate` to
-`~/.bashrc`** or you will spend an afternoon debugging "command not found".
+On Ubuntu 23.04+ the venv is **not optional** — the system Python is protected, and
+`pip install` outside a venv fails with `error: externally-managed-environment`.
 
-> **Skip installing DSSP.** The published tutorials mention a `mkdssp` binary, but
-> martinize2 only accepts DSSP ≤ 3.1.4 and Ubuntu now ships 4.x, which fails. With
-> `mdtraj` installed (above), plain `-dssp` with no argument works — verified on your
-> files, correct secondary structure and both β-lactoglobulin disulfides detected.
+You can tell it is active from the prompt:
 
-### A6. Martini 3 force field files
+```
+nnjj1@DESKTOP:~$                 <- not active
+(cgmd-env) nnjj1@DESKTOP:~$      <- active
+```
+
+**Add `source ~/cgmd-env/bin/activate` to the end of `~/.bashrc`.** The venv deactivates
+when you close the terminal, and forgetting to reactivate is the most common cause of
+`martinize2: command not found`. Note `gmx` is unaffected — it is a system binary and works
+either way; only `martinize2` and `pdb2pqr30` need the venv.
+
+> **Do not install DSSP.** martinize2 only accepts DSSP ≤ 3.1.4; Ubuntu ships 4.x, which
+> fails. With `mdtraj` installed, bare `-dssp` works — verified on your files.
+
+### A6. Martini 3 force field
 
 ```bash
 mkdir -p ~/cgmd/ff && cd ~/cgmd/ff
 wget https://cgmartini-library.s3.ca-central-1.amazonaws.com/1_Downloads/ff_parameters/martini3/martini_v300.zip
 unzip martini_v300.zip
-ls
-```
-
-You need these three (paths inside the zip may be nested — `find . -name "martini_v3.0.0*"`):
-
-- `martini_v3.0.0.itp` — particle definitions and interaction matrix
-- `martini_v3.0.0_ions_v1.itp`
-- `martini_v3.0.0_solvents_v1.itp`
-
-Also grab the reference production parameters:
-
-```bash
+find . -name "martini_v3.0.0*"
 wget https://cgmartini-library.s3.ca-central-1.amazonaws.com/1_Downloads/example_input_files/mdps/martini_v3.0_prod.mdp
 ```
 
-### A7. insane (box builder)
+You need `martini_v3.0.0.itp`, `..._ions_v1.itp`, `..._solvents_v1.itp`. The solvents file
+also contains the **ethanol** topology needed for Stage V2.
+
+> **Martini3-IDP needs no extra download** — merged into vermouth in July 2025. It changes
+> *bonded* parameters only, so the standard `martini_v3.0.0.itp` still supplies the
+> interaction matrix.
+
+### A7. insane ✅
 
 ```bash
-pip install insane || (cd ~/cgmd && git clone https://github.com/Tsjerk/Insane.git && pip install ./Insane)
+pip install insane
+pip install "setuptools<81"        # required — see below
 insane -h | head -3
 ```
 
-If neither works, `gmx solvate` + `gmx genion` is a fine substitute — Section 5 gives both.
+> **The version pin is not optional, and `pip install setuptools` alone will NOT fix it.**
+>
+> insane 1.2.0 (2017) imports `pkg_resources`, a submodule of `setuptools`. Two things have
+> since changed: modern Python/conda environments no longer ship setuptools by default, and
+> **setuptools 81 deprecated `pkg_resources` — setuptools 84 removed it entirely.** Verified:
+>
+> | setuptools | `import pkg_resources` | insane |
+> |---|---|---|
+> | 84.0.0 (what plain `pip install setuptools` gives you) | ✗ `ModuleNotFoundError` | ✗ |
+> | 80.10.2 (`pip install "setuptools<81"`) | ✓ with a deprecation warning | ✓ |
+>
+> So the usual advice — "just install setuptools" — reproduces the identical error. There is
+> also no standalone `pkg_resources` package on PyPI; pinning is the only route.
+>
+> After the fix, insane prints `UserWarning: pkg_resources is deprecated as an API`. That is
+> a **warning, not an error** — it still runs.
+>
+> Downgrading setuptools is low-risk (it is only a build tool and does not affect GROMACS or
+> martinize2). If you would rather not, insane is optional — `gmx solvate` + `gmx genion` is
+> the alternative given in Stage 2, at the cost of needing a CG water box and radius tuning.
 
-**Stage A checkpoint:** `gmx --version`, `martinize2 --version` and `python -c "import mdtraj"`
-all succeed.
-
----
-
-## 3. Stage B — Put the clean structures into the docked pose
-
-Working directory for this stage:
-
-```bash
-mkdir -p ~/cgmd/D1 && cd ~/cgmd/D1
-SRC=/mnt/c/Users/nnjj1/UMD-work/dairy_protein_USDA/scripts_and_methods/Molecular_docking
-cp $SRC/HDOCK_Huazhong/D1_HDOCK.pdb .
-cp $SRC/protein_structures/zein_model.pdb .
-cp $SRC/protein_structures/whey/beta_whey_clean.pdb .
-```
-
-You are **not repairing anything**. Both clean files are already complete; all you're
-doing is rotating each one into the frame `D1_HDOCK.pdb` defines. Save as `pose.py`:
-
-```python
-from Bio.PDB import PDBParser, PDBIO, Superimposer
-
-p = PDBParser(QUIET=True)
-dock = p.get_structure('d', 'D1_HDOCK.pdb')[0]
-
-def place(clean_file, dock_chain, out, chain_id):
-    ref = p.get_structure('r', clean_file)
-    mob = ref[0]['A']
-    dc = dock[dock_chain]
-    ids = [r.id[1] for r in dc
-           if r.id[1] in {x.id[1] for x in mob} and 'CA' in dc[r.id[1]] and 'CA' in mob[r.id[1]]]
-    sup = Superimposer()
-    sup.set_atoms([dc[i]['CA'] for i in ids], [mob[i]['CA'] for i in ids])   # fixed, moving
-    print(f"{clean_file}: fitted on {len(ids)} Ca, RMSD {sup.rms:.3f} A")
-    sup.apply(list(ref.get_atoms()))
-    mob.id = chain_id
-    io = PDBIO(); io.set_structure(ref); io.save(out)
-
-place('zein_model.pdb',       'A', 'zein.pdb', 'A')
-place('beta_whey_clean.pdb',  'B', 'blg.pdb',  'B')
-```
-
-```bash
-python pose.py
-```
-
-**Expect RMSD ≈ 0.000 Å for both.** That is the signature of rigid-body docking and
-confirms the clean file and the docked chain are the same structure. Anything above
-~0.5 Å means you have paired the wrong file with the wrong chain — stop and check.
-
-Result: `zein.pdb` (234 residues, complete — no gap, unlike HDOCK's copy) and `blg.pdb`
-(156 residues), both sitting in the docked arrangement, as two separate single-chain
-files ready for Rule 2.
-
-For **D2** (zein–α-lactalbumin) the same script works with `D2_HDOCK.pdb` and
-`whey/alpha_whey_clean.pdb`.
-
-**Verified reconstruction:** heavy-atom minimum distance between the placed chains is
-1.12 Å with 560 contacts under 5 Å — identical to the original `D1_HDOCK.pdb` pose, so
-the interface is faithfully reproduced. Note that 1.12 Å is a mild steric clash, present
-in HDOCK's own output (rigid-body docking doesn't relax the interface). It disappears in
-the CG mapping and energy minimisation, but it's the reason **EM is not optional** here.
-
-### pH: do this here, before martinize2
-
-Martini has no dynamic protonation — the charge state is baked in at this step and cannot
-be changed later. Residue counts in D1:
-
-| | Asp | Glu | Lys | Arg | His | Cys |
-|---|---|---|---|---|---|---|
-| zein (chain A) | 0 | 1 | 1 | 2 | 2 | 3 |
-| β-lactoglobulin (chain B) | 10 | 16 | 15 | 3 | 1 | 5 |
-
-**Zein is essentially uncharged** — that is real prolamin chemistry, and it means the
-pH story in this system is carried almost entirely by β-lactoglobulin.
-
-At the recommended starting condition (**pH 6.6**), standard pKa values (Asp 3.9, Glu 4.3,
-His 6.0, Lys 10.5) leave every Asp/Glu deprotonated and every Lys protonated. Only the
-**His residues sit near their pKa** and need a decision. So for pH 6.6 you can proceed
-with default protonation — verified net charges from the CG topology: **zein +4,
-β-lactoglobulin −7**, which matches the expected ≈ −8 for β-lg at neutral pH (residues
-1–4 are absent).
-
-Only when you move to a **different pH** (e.g. near β-lg's pI ≈ 5.2) do you need to
-rename residues in the PDB to neutral forms first, guided by PROPKA3 or the
-[H++ server](http://newbiophysics.cs.vt.edu/H++/index.php) on `zein.pdb` and `blg.pdb`.
+**Stage A checkpoint:** `gmx --version`, `martinize2 --version`, `pdb2pqr30 --version`,
+`python -c "import mdtraj"` all succeed.
 
 ---
 
-## 4. Stage C — Coarse-grain, one chain at a time
+## 3. Stage B — Prepare the two structures ✅
 
 ```bash
-martinize2 -f zein.pdb -x zein_cg.pdb -o zein.top \
-    -ff martini3001 -p backbone -dssp \
-    -elastic -el 0 -eu 0.85 -name ZEIN
-
-martinize2 -f blg.pdb -x blg_cg.pdb -o blg.top \
-    -ff martini3001 -p backbone -dssp \
-    -elastic -el 0 -eu 0.85 -name BLG
+mkdir -p ~/cgmd/slab && cd ~/cgmd/slab
+P=/mnt/c/Users/nnjj1/UMD-work/dairy_protein_USDA/scripts_and_methods/Molecular_docking/protein_structures
+cp $P/zein_model.pdb .
+cp $P/whey/alpha_whey_clean.pdb .
 ```
 
-**Verified output on your files:**
+### 3.1 The α-lactalbumin trap
 
-| Molecule | Residues | Beads | Net charge |
+`alpha_whey_clean.pdb` looks clean — 122 residues, no gaps, all 8 cysteines — but
+**Glu121 and Lys122 are missing their side-chain tips** (only N, CA, C, O, CB). Normal for
+a crystal structure: the C-terminal tail is disordered. **No chain in 1F6S has it complete**
+(all six checked).
+
+martinize2 does **not** error. It writes a bead with **`nan nan nan` coordinates** for
+LYS122 SC2, which fails later with a cryptic message. Verified.
+
+### 3.2 Fix missing atoms and set pH in one command
+
+This step does two jobs:
+
+1. **Rebuilds the missing heavy atoms** (§3.1) — without it, martinize2 emits `nan`.
+2. **Assigns protonation states, i.e. fixes every charge.**
+
+Job 2 is the more important one, because **Martini has no dynamic protonation**. Atomistic
+MD can do constant-pH simulation, where residues protonate and deprotonate during the run.
+CG cannot: each bead's charge is frozen at the moment the topology is written and never
+changes again.
+
+**So this command is the only place pH exists in the entire workflow.** Skip it and you
+silently get default (≈ pH 7) charges no matter what pH you claim to be simulating.
+
+PROPKA computes **structure-specific pKa shifts** — a buried Asp can have a pKa several
+units from an exposed one — then pdb2pqr sets the protonation accordingly, and martinize2
+maps the result onto charged or neutral beads.
+
+```bash
+pdb2pqr30 --ff=AMBER --keep-chain --with-ph 5.5 --titration-state-method propka \
+    --pdb-output ala_ph55.pdb  alpha_whey_clean.pdb ala.pqr
+
+pdb2pqr30 --ff=AMBER --keep-chain --with-ph 5.5 --titration-state-method propka \
+    --pdb-output zein_ph55.pdb zein_model.pdb        zein.pqr
+```
+
+`WARNING: Missing atom CG in residue GLU A 121` is pdb2pqr **reporting what it rebuilds**,
+not failing. Changing pH later is a one-line edit here.
+
+**Checkpoint:** all residues complete; residue names still standard (`HIS`, not `HIE`/`HID`
+— martinize2 requires the standard names, and pdb2pqr's PDB output preserves them).
+
+### 3.3 Why pH 5.5, and what it actually changes ✅
+
+**Why 5.5 rather than the memo's 6.6:**
+
+1. **It is a measured experimental condition.** Both DLS datasets in
+   `../DLVO/data_DLVO/` use a pH grid of **3, 4, 5.5, 7** — 6.6 appears nowhere, so it
+   could not be cross-checked against the wet lab.
+2. **6.6 sits on zein's own isoelectric point** (~6.2 in the literature). The CG model is
+   *bare* zein, so zein's own pI is the relevant one — not the ~4.5–5 pI of the
+   zein–caseinate particle seen in the zeta data, which reflects the caseinate coating.
+3. **pH 5.5 is colloidally stable in your own data** (radius 68–110 nm, |ζ| 11–23 mV),
+   whereas pH 4 flocculates — radius reaches **8404 nm** at 100 mM ionic strength.
+
+**Net charges, measured from the finished CG topologies at both pH values:**
+
+| | pH 5.5 | pH 6.6 |
+|---|---|---|
+| zein (521 beads) | **+2** | **+2** |
+| α-lactalbumin (293 beads) | **−1** | **−4** |
+
+**zein's charge does not change at all.** Its 234 residues contain only **six ionizable
+groups** (1 Glu, 1 Lys, 2 Arg, 2 His) — the classic prolamin composition, Gln- and Pro-rich
+and almost devoid of charged residues, which is precisely why zein is water-insoluble. Its
+titration curve is nearly flat: net charge moves only from +4.9 to +2.0 across pH 4 → 7.
+
+> **The key consequence: in this system pH acts almost entirely on the milk protein, not on
+> zein.** Moving from 6.6 to 5.5 leaves zein untouched and cuts α-lactalbumin's charge
+> four-fold.
+
+**Two things this implies for interpretation:**
+
+- **Electrostatic attraction is much weaker at pH 5.5** (+2/−1 vs +2/−4). Adsorption
+  observed here is therefore largely **hydrophobically driven** — arguably the more relevant
+  question for a corona on a hydrophobic surface, and harder to dismiss as "just
+  electrostatics". But be clear that it is a different physical question from pH 6.6.
+- **Watch α-lactalbumin's own stability.** Its pI is 4.52, so at pH 5.5 it is only one unit
+  above its own isoelectric point with a net charge of −1. In reality α-LA is less soluble
+  and prone to self-association there. With 2–4 copies in the box they may **aggregate with
+  each other instead of adsorbing to the surface** — so track α-LA↔α-LA contacts separately
+  from α-LA↔surface contacts in Stage 4, or you will misread the result.
+
+> **Note on PROPKA vs hand calculation.** A naive Henderson–Hasselbalch estimate gives
+> α-LA ≈ −4 at pH 5.5; PROPKA gives **−1**, because several carboxylates in the
+> calcium-binding site have substantially elevated pKa values. This gap is exactly why the
+> `--titration-state-method propka` step is worth running rather than renaming residues by
+> hand.
+
+---
+
+## 4. Stage C — Coarse-grain, with different treatments ✅
+
+The two proteins get deliberately different structural treatments because their structures
+are of completely different quality:
+
+| | Source | Quality | Treatment |
 |---|---|---|---|
-| `ZEIN_0.itp` | 234 | 521 | +4 |
-| `BLG_0.itp` | 156 | 356 | −7 |
+| **α-lactalbumin** | 1F6S crystal | experimental, 4 disulfides, no gaps | Martini 3 + **elastic network** |
+| **zein** | ColabFold | mean pLDDT 49, 67% < 50, 3 buried residues of 234 | **Martini3-IDP, no network** |
 
-The β-lg run should log two disulfide bridges (Cys62–Cys156, Cys102–Cys115 in this
-file's numbering) — β-lactoglobulin has exactly two plus one free thiol, so this is a
-good structural sanity check that the input is intact.
+Restrain what you know; let the rest sample. This asymmetry is easy to defend in a methods
+section.
 
-**Note on flags vs. the README.** README §3 Step 1 suggests `-ef 700 -el 0.5 -eu 0.9`.
-The current Martini 3 protein tutorial recommends `-el 0 -eu 0.85`, and warns against
-force constants below the 700 default (lower values make proteins artificially sticky —
-which would directly corrupt an aggregation study). `-ef 700` is the default, so it can
-be omitted. Use `-el 0 -eu 0.85`.
+**Run martinize2 once per protein, on a single-chain PDB** — never on a multi-chain file,
+or the elastic network can bridge between molecules.
 
-`-p backbone` writes `[ position_restraints ]` guarded by `#ifdef POSRES` with a default
-`POSRES_FC` of 1000 kJ mol⁻¹ nm⁻². You switch them on in the `.mdp` with
-`define = -DPOSRES`, and can soften them with `-DPOSRES_FC=500`.
+```bash
+martinize2 -f zein_ph66.pdb -x zein_cg.pdb -o zein.top \
+    -ff martini3IDP -p backbone -dssp -name ZEIN
+
+martinize2 -f ala_ph66.pdb -x ala_cg.pdb -o ala.top \
+    -ff martini3001 -p backbone -dssp -elastic -el 0 -eu 0.85 -name ALAC
+```
+
+> **Capitalisation: `martini3IDP`, not `martini3idp`.** The Martini3-IDP GitHub README says
+> lowercase; vermouth 0.15.0 registers it as `martini3IDP` and exits with
+> `ValueError: Unknown force field` otherwise. Check yours with `martinize2 -list-ff`.
+
+**Verified output:**
+
+| Molecule | Force field | Residues | Beads | Net charge | Elastic bonds | Rg (start) |
+|---|---|---|---|---|---|---|
+| `ZEIN_0.itp` | martini3IDP | 234 | 521 | +2 | **0** ✔ | 3.12 nm |
+| `ALAC_0.itp` | martini3001 + ENM | 122 | 293 | −4 | present ✔ | 1.39 nm |
+
+**Checks that must pass every time:**
+
+```bash
+grep -c "Rubber band" ZEIN_0.itp     # must be 0 — zein must NOT be restrained
+grep -c "Rubber band" ALAC_0.itp     # must be 1 — alpha-LA must be
+grep -c "nan" zein_cg.pdb ala_cg.pdb # must both be 0
+grep -c "moleculetype" ZEIN_0.itp ALAC_0.itp   # must both be 1
+```
+
+The α-lactalbumin run must log **four** disulfides (Cys6–120, 28–111, 61–77, 73–91). Fewer
+means the input structure is damaged.
 
 ---
 
-## 5. Stage D — Build the solvated, ionized box
+## 5. Shared MD parameters 📐
 
-First combine the two CG chains into one starting structure. `zein_cg.pdb` and
-`blg_cg.pdb` retain the docked relative geometry, so a plain concatenation preserves the
-pose:
+Start from the downloaded `martini_v3.0_prod.mdp` and change only what is listed. **Do not
+hand-write the non-bonded block** — Martini's cutoffs, `rlist`, `epsilon_r = 15` and
+`verlet-buffer-tolerance = -1` are load-bearing.
 
-```bash
-grep -h "^ATOM" zein_cg.pdb blg_cg.pdb > complex_cg.pdb
-echo END >> complex_cg.pdb
-```
+**Pressure coupling depends on the stage — this is easy to get wrong:**
 
-Measured extents: zein spans **9.0 × 6.3 × 7.5 nm** (Rg 3.12 nm — an elongated model),
-β-lg is 4.2 × 3.7 × 3.8 nm (Rg 1.45 nm). A **12 nm cubic box** gives adequate clearance
-for the 1:1 test.
+| Stage | System shape | `Pcoupltype` |
+|---|---|---|
+| V1, V2 | single protein in solvent | **`isotropic`** |
+| 1 | dense phase, compressing z only | **`semiisotropic`**, x/y `compressibility = 0` |
+| 2, 3 | slab spanning x/y with water above/below | **`semiisotropic`** |
 
-**Option A — insane (more robust CG water/ion placement):**
+The reference `.mdp` ships with `semiisotropic`, which is correct for Stages 1–3 but wrong
+for V1/V2.
 
-```bash
-insane -f complex_cg.pdb -o solvated.gro -p system.top \
-       -pbc cubic -box 12,12,12 -sol W -salt 0.08 -charge 0 -d 0
-```
-
-`-salt 0.08` is 80 mM NaCl — your "whole milk" reference condition. insane writes ion
-names `NA+`/`CL-` (Martini 2 nomenclature); Martini 3 uses `NA`/`CL`, so strip the signs:
-
-```bash
-sed -i 's/NA+/NA /g; s/CL-/CL /g' solvated.gro system.top
-```
-
-**Option B — plain GROMACS.** Note `gmx solvate` needs a pre-equilibrated *CG* water box
-(`water.gro`), which is **not** in `martini_v300.zip` — download it from the Martini
-[solvent systems examples](https://cgmartini.nl/docs/downloads/example-applications/solvent-systems.html).
-If that's a hassle, just use insane.
-
-```bash
-gmx editconf -f complex_cg.pdb -o boxed.gro -d 1.5 -bt cubic
-gmx solvate  -cp boxed.gro -cs ~/cgmd/ff/water.gro -o solvated.gro -p system.top
-# then grompp a throwaway tpr against system.top, and:
-gmx genion -s ions.tpr -o solvated.gro -p system.top -pname NA -nname CL -neutral -conc 0.08
-```
-
-**Then write `system.top` by hand.** This is the step that breaks most first attempts —
-the includes must be in this exact order, and the `[ molecules ]` counts must match the
-`.gro` file exactly:
-
-```
-#include "./ff/martini_v3.0.0.itp"
-#include "./ff/martini_v3.0.0_ions_v1.itp"
-#include "./ff/martini_v3.0.0_solvents_v1.itp"
-#include "./ZEIN_0.itp"
-#include "./BLG_0.itp"
-
-[ system ]
-zein - beta-lactoglobulin, CG Martini 3
-
-[ molecules ]
-ZEIN_0   1
-BLG_0    1
-W        <count from insane/solvate>
-NA       <count>
-CL       <count>
-```
-
-Expected total system size: **~14,000 beads** (877 protein + ~13,500 water).
-
-> If you run at or below ~300 K, replace ~10% of `W` with antifreeze `WF` beads —
-> standard Martini water spuriously freezes in that range. At 298 K this is worth doing.
-
-### Index file for temperature coupling
-
-Martini needs separate Solvent/Rest coupling groups, and GROMACS' automatic groups don't
-handle CG bead names well. Build them explicitly:
-
-```bash
-gmx make_ndx -f solvated.gro -o index.ndx
-```
-
-At the prompt, type these one line at a time. `make_ndx` prints the number of each new
-group as it is created — substitute those numbers where shown in angle brackets:
-
-```
-r W WF NA CL          # creates the solvent group, note its number -> N
-name N Solvent
-! N                   # everything else, note its number -> M
-name M Rest
-a 1-521               # zein beads (protein comes first in the .gro), number -> P
-name P Zein
-a 522-877             # beta-lactoglobulin beads, number -> Q
-name Q Milk
-q
-```
-
-(Select by bead index, not residue name — CG residues are still named `MET`, `ALA`, …,
-so `r ZEIN` matches nothing. 521 and 877 come from the verified bead counts in Stage C;
-recount them for any other system.)
-
-The `Zein` / `Milk` groups are what `gmx mindist` and `gmx sasa` need in Section 7.
-
----
-
-## 6. Stage E — Minimize, equilibrate, produce
-
-Four `.mdp` files. Start from the downloaded `martini_v3.0_prod.mdp` and change only what
-is listed below — **do not hand-write the non-bonded block**, Martini's cutoffs, `rlist`,
-`epsilon_r = 15` and `verlet-buffer-tolerance = -1` are all load-bearing.
-
-**One correction to the reference file:** it ships with `Pcoupltype = semiisotropic`,
-which is for membranes. For a protein in water you must use:
-
-```
-Pcoupltype = isotropic
-tau_p      = 4.0
-ref_p      = 1.0
-compressibility = 3e-4
-```
+**The four run types:**
 
 | File | Key settings |
 |---|---|
 | `em.mdp` | `integrator = steep`, `nsteps = 10000`, `emtol = 100`, `define = -DPOSRES` |
-| `nvt.mdp` | `integrator = md`, `dt = 0.005`, `nsteps = 200000` (1 ns), `define = -DPOSRES`, `tcoupl = v-rescale`, `tc-grps = Solvent Rest`, `tau_t = 1.0 1.0`, `ref_t = 298 298`, `pcoupl = no`, `gen_vel = yes`, `gen_temp = 298` |
-| `npt.mdp` | as NVT but `dt = 0.01`, `nsteps = 2000000` (20 ns), `pcoupl = c-rescale` isotropic, `gen_vel = no`, drop `define` in the last part |
-| `prod.mdp` | `dt = 0.02`, `nsteps = 2500000` (50 ns to start), `tcoupl = v-rescale`, `pcoupl = c-rescale` isotropic, `ref_t = 298 298`, no `define`, `nstxout-compressed = 25000` |
+| `nvt.mdp` | `dt = 0.005`, `nsteps = 200000` (1 ns), `define = -DPOSRES`, `tcoupl = v-rescale`, `tc-grps = Solvent Rest`, `tau_t = 1.0 1.0`, `ref_t = 298 298`, `pcoupl = no`, `gen_vel = yes`, `gen_temp = 298` |
+| `npt.mdp` | as NVT but `dt = 0.01`, `nsteps = 2000000` (20 ns), `pcoupl = c-rescale`, `gen_vel = no` |
+| `prod.mdp` | `dt = 0.02`, `nsteps` per stage, no `define`, `nstxout-compressed = 25000` |
 
-Note the ramp in `dt`: 5 → 10 → 20 fs. Jumping straight to 20 fs during equilibration is
-the most common cause of "LINCS warning / particle out of box" crashes in a fresh system.
+The `dt` ramp 5 → 10 → 20 fs matters: jumping straight to 20 fs is the most common cause of
+"LINCS warning / particle out of box" crashes in a fresh system.
 
-Run them:
+> **Position restraints must be OFF in production for zein.** `-DPOSRES` is fine during EM
+> and NVT, but leaving it on in production re-freezes the conformer you deliberately chose
+> not to freeze.
+
+---
+
+## 6. Stage V — Force-field validation 📐
+
+**Do this first. It is cheap and it can invalidate everything downstream.**
+
+A chain of an insoluble polymer collapses in a poor solvent and stays expanded in a good
+one. For zein, water is the poor solvent and aqueous ethanol the good one. If Martini 3
+reproduces that contrast, the slab rests on something.
+
+| Run | Solvent | Expectation |
+|---|---|---|
+| **V1** | water + 80 mM NaCl | Rg **collapses** well below the 3.12 nm starting value |
+| **V2** | 80% ethanol / 20% water | Rg **stays expanded** |
+
+V2 is the positive control. Without it, a model that collapses *everything* would pass V1.
+
+### V1 — zein in water
 
 ```bash
-gmx grompp -p system.top -c solvated.gro -r solvated.gro -f em.mdp   -o em.tpr   -n index.ndx
-gmx mdrun  -deffnm em -v
-
-gmx grompp -p system.top -c em.gro   -r em.gro   -f nvt.mdp  -o nvt.tpr  -n index.ndx
-gmx mdrun  -deffnm nvt -v
-
-gmx grompp -p system.top -c nvt.gro  -r nvt.gro  -f npt.mdp  -o npt.tpr  -n index.ndx
-gmx mdrun  -deffnm npt -v
-
-gmx grompp -p system.top -c npt.gro  -f prod.mdp -o prod.tpr -n index.ndx -maxwarn 1
-gmx mdrun  -deffnm prod -v
+gmx editconf -f zein_cg.pdb -o zein_box.gro -box 14 14 14 -c
+insane -f zein_box.gro -o V1_solvated.gro -p tmp.top -pbc cubic -box 14,14,14 \
+       -sol W -salt 0.08 -charge 0 -d 0
+sed -i 's/NA+/NA /g; s/CL-/CL /g' V1_solvated.gro tmp.top
 ```
+
+insane writes Martini 2 ion names (`NA+`/`CL-`); Martini 3 uses `NA`/`CL`, hence the `sed`.
+Then EM → NVT → NPT (isotropic) → 500 ns production.
+
+### V2 — zein in 80% ethanol
+
+Ethanol is a **single bead** in Martini 3; its topology is in
+`martini_v3.0.0_solvents_v1.itp`. Look up the molecule name there before writing the `.top`.
+
+**Composition arithmetic for 80% v/v ethanol** (per 100 mL):
+
+| | Volume | Density | Mass | Moles |
+|---|---|---|---|---|
+| ethanol | 80 mL | 0.789 g/mL | 63.1 g | 1.370 mol |
+| water | 20 mL | 1.000 g/mL | 20.0 g | 1.110 mol |
+
+One Martini `W` bead = 4 real waters, so 1.110 mol water → 0.278 mol of `W` beads.
+
+**Bead ratio ≈ 4.9 ethanol beads per W bead.** Build the box with roughly that ratio
+(insane cannot mix two solvents directly — build the ethanol box first, then replace ~17%
+of the ethanol beads with `W`, or solvate with a pre-mixed box).
+
+> ⚠️ **This ratio is arithmetic, not a tested build.** Verify the final composition with
+> `gmx density` or by counting molecules in the `.gro` before you trust it. Also confirm
+> whether your source specifies 80% v/v or w/w — the bead ratio differs.
+
+### The gate
+
+Plot Rg vs time for both. **Do not proceed to Stage 1 unless V1 collapses and V2 does not.**
+If both collapse, the model is simply over-sticky and the adsorption results will be
+qualitative at best. If neither collapses, something is wrong with the setup.
+
+---
+
+## 7. Stage 1 — Build the dense zein phase 📐
+
+**Target:** ~25 chains in 12 × 12 × 6 nm = 1.25 g/cm³ (verified arithmetic: 864 nm³ ×
+1.25 g/cm³ ÷ 25.7 kDa ≈ 25.3 chains; 25 × 521 = 13,025 beads).
+
+Packing 13,000 beads directly into 864 nm³ will defeat `insert-molecules`. Build loose,
+then compress.
+
+**Option A — loose pack, then anisotropic compression (recommended):**
+
+```bash
+# 1. place 25 chains loosely in a tall box, correct x/y, no solvent
+gmx insert-molecules -ci zein_cg.pdb -nmol 25 -box 12 12 30 -o loose.gro -radius 0.21 -try 2000
+
+# 2. energy minimise
+gmx grompp -f em.mdp -c loose.gro -p system.top -o em.tpr -maxwarn 1
+gmx mdrun -deffnm em
+
+# 3. compress z only: semiisotropic, x/y compressibility = 0
+gmx grompp -f compress.mdp -c em.gro -p system.top -o compress.tpr -maxwarn 1
+gmx mdrun -deffnm compress
+```
+
+`compress.mdp`: `Pcoupltype = semiisotropic`, `compressibility = 0 3e-4`,
+`ref_p = 1.0 1.0`, `dt = 0.01`, tens of ns. The zero x/y compressibility holds the lateral
+area fixed while z collapses under the chains' own cohesion.
+
+**`-radius 0.21` is not optional.** The default 0.105 nm is an atomistic radius; Martini
+beads are roughly twice that.
+
+**Option B — fallback:** if `insert-molecules` cannot place 25 chains even in the tall box,
+accept fewer (18–22) and let NPT find the equilibrium density. A slightly thinner slab is
+fine; the density is what matters.
 
 **Checkpoints:**
 
-- After EM: `Fmax < 1000`, potential energy large and negative. If EM fails, the topology
-  or `[ molecules ]` counts are wrong — not the physics.
-- After NPT: box volume and density flat over the last few ns (`gmx energy`).
-- Production: it simply must not crash. Watch the first 100 ps closely.
+- Box z stops shrinking; volume flat over the last ~20 ns
+- Final density ≈ 1.2–1.3 g/cm³ (`gmx energy`, select Density)
+- No chain has drifted off on its own — the phase should be one connected blob
 
 ---
 
-## 7. Stage F — Analysis
-
-### 7.1 The topology check you should run every single time
-
-Before trusting any result, confirm no elastic bond crosses between the two proteins.
-Because you martinized each chain separately (Rule 2), this is guaranteed by construction —
-but check anyway, because the failure is silent:
+## 8. Stage 2 — Create the interface 📐
 
 ```bash
-grep -c "moleculetype" ZEIN_0.itp BLG_0.itp   # must be 1 each
+# extend z, keeping the slab centred
+gmx editconf -f compress.gro -o slab_box.gro -box 12 12 18 -c
+
+# solvate the empty space
+insane -f slab_box.gro -o S2_solvated.gro -p tmp.top -pbc rectangular \
+       -box 12,12,18 -sol W -salt 0.08 -charge 0 -d 0
+sed -i 's/NA+/NA /g; s/CL-/CL /g' S2_solvated.gro tmp.top
 ```
 
-Both must return `1`. If a single `.itp` contains two `[ moleculetype ]` entries, or the
-bead count of one molecule exceeds its chain length, you have reproduced the Section 1.2
-bug and the results are meaningless.
+Then EM → NVT → NPT (semiisotropic) → **200–500 ns equilibration**. The surface needs time
+to reorganise: hydrophobic side chains retract, polar ones turn outward.
 
-### 7.2 The three metrics that matter
+**Checkpoints — these matter more than usual:**
 
 ```bash
-# Interface persistence — contact count over time
-gmx mindist -f prod.xtc -s prod.tpr -n index.ndx -od mindist.xvg -on numcont.xvg -d 0.6
-
-# Buried interface area
-gmx sasa -f prod.xtc -s prod.tpr -n index.ndx -o sasa.xvg
-
-# Radius of gyration — the metric that cross-checks against your DLS data
-gmx gyrate -f prod.xtc -s prod.tpr -n index.ndx -o gyrate.xvg
+gmx density -f npt.xtc -s npt.tpr -n index.ndx -o density_z.xvg -d Z
 ```
 
-For `mindist`/`sasa` you need index groups for zein and β-lg separately — add them in
-`gmx make_ndx` when you build `index.ndx`.
+1. **Clean step profile along z:** a zein plateau, a sharp-ish interface, a water plateau.
+2. **No water trapped inside the slab.** Water density in the slab interior should be near
+   zero. If solvation pushed water into cavities, rebuild with a larger insertion radius or
+   solvate with `gmx solvate -scale` tuned for CG.
+3. **The interface has stopped moving** — surface composition stable over the last ~100 ns.
 
-**The one comparison that ties 3C back to 3B:** take the interface residues HDOCK
-predicted for D1, and ask whether those specific residues stay within 0.6 nm across the
-trajectory. A persistent interface at the *docked* residues supports 3B. A persistent
-interface at *different* residues is arguably the more interesting result — it says
-docking found the right partner but the wrong pose.
+### This stage is a result, not just preparation
 
-Rg from `gyrate.xvg` is what you compare, as a trend and not an absolute number, against
-the DLS particle-size trend in `../DLVO/data_DLVO/`.
+**Which residues does zein expose at a water interface?** Compute the residue composition
+within ~1 nm of the interface and compare it with the whole-chain composition, and with the
+34 zein residues HDOCK predicted in
+`../Molecular_docking/protein_structures/whey/interface_residues.csv`.
 
----
-
-## 8. Stage G — Only after Section 6 completes cleanly
-
-In priority order:
-
-1. **The multi-copy patch.** This is where the actual science is — a 1:1 pair cannot
-   address avidity. Size estimates for your molecules:
-
-   | System | Box | Protein beads | Total beads |
-   |---|---|---|---|
-   | 1 zein + 1 β-lg (pipeline test) | 12 nm | 877 | ~14,000 |
-   | 4 zein + 2 β-lg | 16 nm | 2,796 | ~34,000 |
-   | 9 zein + 4 β-lg | 22 nm | 6,113 | ~88,000 |
-
-   On CPU-only WSL2, **4 zein + 2 β-lg is the realistic ceiling.** Build it by
-   duplicating `ZEIN_0` in `[ molecules ]` and placing copies with `gmx insert-molecules`,
-   arranged as a rough plane to mimic a local NP surface.
-
-2. **GōMartini instead of `-elastic`.** Generate a contact map with the
-   [Gō Contact Map server](http://pomalab.ippt.pan.pl/GoContactMap), then
-   `-go contact_map.out -go-low 0.3 -go-up 1.1 -go-eps 9.414`. This adds two extra files
-   (`go_atomtypes.itp`, `go_nbparams.itp`) that must be `#include`d into
-   `martini_v3.0.0.itp` — follow
-   [Tutorial I.I §3.3](https://cgmartini.nl/docs/tutorials/Martini3/ProteinsI/Tut1.html)
-   exactly, the include surgery is fiddly and easy to get wrong.
-
-3. **Casein.** Requires a docked fragment from 3B first (you don't have one yet). Use
-   IDP-aware settings — `-ff martini3IDP` with `-id-regions`/`-idr-tune`, or water-bias
-   tuning. See [Tutorial I.III](https://cgmartini.nl/docs/tutorials/Martini3/ProteinsI/Tut3.html).
-   Standard Martini 3 will give you an artificially collapsed casein.
-
-4. **Second condition / PMF.** Only if 1–3 are done and clean.
+Docking used the surface of an *isolated chain*. This is the surface of a *condensed phase*.
+If they differ, that is a concrete, publishable statement about why single-chain docking
+could not answer the corona question — and it strengthens the negative result already
+written up in `DOCKING_STATUS_AND_NEXT_STEPS.md`.
 
 ---
 
-## 9. Time and hardware — the honest numbers
+## 9. Stage 3 — α-lactalbumin adsorption 📐
 
-**Measure, don't guess.** Run a 5-minute benchmark before committing to anything:
+Place 2–4 α-LA copies in the water phase, **≥ 3 nm from both interfaces**, before solvating:
+
+```bash
+# translate copies to chosen z positions in the empty region, then concatenate with the slab
+gmx editconf -f ala_cg.pdb -o ala_1.gro -translate <x> <y> <z>
+# ... repeat for each copy, combine, then solvate as in Stage 2
+```
+
+Placing them *before* solvation is cleaner than `insert-molecules -replace W`, which can
+drop a copy inside the slab.
+
+**Verify the starting separation before you run.** If a copy starts in contact with the
+surface you have accidentally assumed a binding site:
+
+```bash
+gmx mindist -f start.gro -s start.gro -n index.ndx -od check.xvg
+```
+
+Then EM → NVT → NPT → **production 500 ns – 1 µs, three replicas with different
+`gen_seed`.**
+
+> **Why replicas and multiple copies:** one adsorption event in one trajectory proves almost
+> nothing. 3 replicas × 4 copies gives ~12 semi-independent encounters. This is the
+> difference between "we observed binding" and "binding occurred in N of 12 encounters."
+
+---
+
+## 10. Stage 4 — Analysis 📐
+
+| Question | Tool / metric |
+|---|---|
+| Does it adsorb? How fast? | contact count vs time — `gmx mindist -on numcont.xvg -d 0.6` |
+| Where on zein? | residue-resolved contact frequency over the trajectory |
+| How much surface is buried? | `gmx sasa` |
+| Stable or transient? | count adsorption/desorption events; residence-time distribution |
+| Does α-LA deform? | its Rg and RMSD (an ENM-restrained protein should barely change — if it does, something is wrong) |
+| **Do the α-LA copies aggregate with each other?** | α-LA↔α-LA contacts, tracked **separately** from α-LA↔surface. At pH 5.5, α-LA carries only −1 and sits near its own pI (4.52), so self-association is a real competing outcome, not a nuisance |
+| Consistent with 3B? | compare contact residues with `interface_residues.csv` (34 zein / 38 α-LA residues from HDOCK D2) |
+| Consistent with the wet lab? | adsorbed layer thickness vs the DLS size shift in `../DLVO/data_DLVO/` |
+
+**What each outcome means:**
+
+- **Adsorbs and stays** → supports a stable corona. Report *where*, and whether it matches
+  3B (independent corroboration) or not (more interesting, and more likely).
+- **Adsorbs and releases repeatedly** → a dynamic, exchanging corona. This is a real result,
+  not a failed run, and it is consistent with the non-specific binding your docking work
+  already concluded.
+- **Never adsorbs** → at pH 5.5 the charges are only +2 and −1, so electrostatic attraction
+  is weak by design; a null result here is more plausible than it would be at pH 6.6. Before
+  concluding anything, check that the α-LA copies have not simply **aggregated with each
+  other** (see §3.3) — at pH 5.5 they sit close to their own pI.
+
+---
+
+## 11. Compute budget 📐
+
+**Measure before committing:**
 
 ```bash
 gmx mdrun -deffnm prod -nsteps 50000 -v
-tail -20 prod.log     # read the "Performance: ... ns/day" line
+tail -20 prod.log        # read the "Performance: ... ns/day" line
 ```
 
-For orientation: a ~14,000-bead Martini system at dt = 20 fs on 8 CPU cores typically
-lands in the **low hundreds of ns/day**, so 50–200 ns of the 1:1 test is an overnight
-job. The ~34,000-bead patch will be roughly 2–3× slower. Scale from your own measured
-number, not from these.
+| Stage | Beads | Rough CPU-only estimate |
+|---|---|---|
+| V1 / V2 | ~22,000 each | 1–2 days each |
+| 1 | ~13,000 | hours |
+| 2 | ~27,500 | several days |
+| 3 | ~29,000 | ~1 week per replica |
 
-Rough calendar for the WSL2 CPU path:
+The whole programme fits on your current machine. **No HPC required.**
 
 | | |
 |---|---|
-| Week 1 | Stages A–D, `em.tpr` builds without error |
-| Week 2 | D1 1:1 runs 50 ns cleanly; analysis scripts working |
-| Weeks 3–4 | 4+2 patch at one condition, few hundred ns |
-| Weeks 5–6 | Analysis, write-up, GōMartini if time permits |
-
-Per the memo, that is a **complete success** for 3C. It is a stretch-goal method
-reported alongside 3A/3B/4, not a load-bearing deliverable.
+| Week 1 | Stages A–C; V1 and V2 launched |
+| Week 2 | V-gate passed; Stage 1 and 2 built |
+| Weeks 3–4 | Stage 2 equilibration; Stage 3 replicas launched |
+| Weeks 5–6 | Analysis and write-up |
 
 ---
 
-## 10. Troubleshooting
+## 12. Limitations — carry all of these into the write-up
+
+- **Amorphous packing is assumed, not derived.** The internal structure of a real zein
+  nanoparticle is unknown. The slab is a plausible dense phase, not a measured one.
+- **No caseinate.** Your particle is zein–**caseinate**, and caseinate is the surface
+  stabiliser. Real α-lactalbumin approaches a **caseinate-coated** surface, not bare zein.
+  This is the single largest remaining gap in the model and the obvious next step. It is
+  also why the simulated and measured electrostatics cannot be compared directly — see next
+  point.
+- **The model's surface charge does not match the measured particle.** Two independent
+  reasons, both documented rather than speculative:
+  1. **No caseinate.** The measured ζ-potential is dominated by the caseinate coating
+     (pI ≈ 4.6), not by zein.
+  2. **No deamidation.** The P02859 α-zein sequence contains **41 Gln (18% of the chain)**
+     and essentially no acidic residues, giving a sequence pI of **8.26** — whereas zein
+     preparations are commonly reported near pI 6.2. Gln→Glu deamidation closes that gap
+     fast: converting just 10% of the Gln drops the calculated pI to 5.36, and 20% to 4.36.
+     Commercial zein is typically partially deamidated.
+  **Therefore: do not claim agreement between the simulated charges and the DLS ζ-potential
+  data.** State the model as bare, non-deamidated zein.
+  *Optional cheap sensitivity test:* build a second zein topology with ~15–20% of Gln
+  mutated to Glu in the input sequence (re-run pdb2pqr + martinize2, a few minutes) and
+  compare adsorption. If the two differ strongly the process is electrostatically driven; if
+  not, it is hydrophobically driven. Either answer is a result, and it converts a known
+  weakness into a controlled variable.
+- **Flat = local.** Valid for what one protein touches; says nothing about whole-particle
+  multivalency or avidity.
+- **No formation history.** The real surface is kinetically frozen during ethanol→water
+  precipitation and may differ from the equilibrium surface simulated here.
+- **Martini 3 over-estimates protein–protein stickiness for flexible proteins**
+  ([Nat. Commun. 2024](https://www.nature.com/articles/s41467-024-50647-9)). Report
+  adsorption as qualitative/comparative — **never as an affinity or a ΔG**.
+- **α-lactalbumin's Ca²⁺ was stripped.** 1F6S is the calcium-bound form; apo α-LA is a
+  molten globule in reality. The elastic network holds the fold, so the run is stable, but
+  the binding-loop charge is wrong by +2 and **no thermal-stability claim about α-LA is
+  admissible**.
+- **Zein's conformational ensemble is unvalidated.** Removing the elastic network is the
+  honest choice given pLDDT 49, but it means there is no reference structure to check
+  against. Stage V is the only validation available.
+- **Scope.** Per the memo: "V-gate passed, one slab equilibrated, adsorption trend across
+  3 replicas" is a **complete success** for 3C in a 4–6 week window. It is a stretch goal
+  reported alongside 3A/3B/4, not a load-bearing deliverable.
+
+---
+
+## 13. Troubleshooting
 
 | Symptom | Cause / fix |
 |---|---|
 | `martinize2: command not found` | venv not active — `source ~/cgmd-env/bin/activate` |
-| DSSP errors | Don't install `mkdssp` (Ubuntu ships 4.x, incompatible). `pip install mdtraj` and use bare `-dssp` |
-| martinize2 writes `molecule_0/1.itp` with unexpected sizes | You ran it on a multi-chain or gapped PDB — Section 1, Rules 1 & 2 |
-| `grompp: number of coordinates does not match topology` | `[ molecules ]` counts disagree with the `.gro` — recount `W`/`NA`/`CL` |
-| `Atomtype W not found` | Force-field `#include` lines missing or in the wrong order in `system.top` |
+| `ValueError: Unknown force field "martini3idp"` | capitalisation — use `martini3IDP` |
+| DSSP errors | don't install `mkdssp` (4.x incompatible); `pip install mdtraj`, use bare `-dssp` |
+| `insane`: `ModuleNotFoundError: No module named 'pkg_resources'` | `pip install "setuptools<81"` — plain `pip install setuptools` gives 84.x, which **removed** `pkg_resources` and fails identically (§A7) |
+| `nvidia-smi: command not found` in WSL2 | **do not** `apt install nvidia-utils-*`. NVIDIA drivers must be installed on **Windows**; WSL2 exposes the GPU via `/usr/lib/wsl/lib/`. Installing a Linux driver inside WSL2 breaks the passthrough. GPU is optional for this guide. |
+| `nan` coordinates in the CG pdb | incomplete side chains — run `pdb2pqr30` first (§3.2) |
+| martinize2 writes `molecule_0/1.itp` with odd sizes | ran on a multi-chain or gapped PDB — one protein per run |
+| `insert-molecules` places far fewer chains than asked | expected at high density — use Option A (loose then compress), keep `-radius 0.21` |
+| Slab drifts or breaks up during NPT | wrong `Pcoupltype`; needs `semiisotropic` with x/y compressibility 0 during Stage 1 |
+| Water appears inside the slab | solvation inserted into cavities — check `gmx density`, rebuild with a larger insertion radius |
+| Box z keeps shrinking and won't converge | not yet equilibrated, or `ref_p` set on the wrong axis |
+| `grompp: number of coordinates does not match topology` | `[ molecules ]` counts disagree with the `.gro` |
+| `Atomtype W not found` | force-field `#include` lines missing or in the wrong order |
 | `Invalid group Solvent` | `index.ndx` not passed (`-n`) or groups misnamed |
-| LINCS warnings / crash in first ps | `dt` too large too early — ramp 5 → 10 → 20 fs; check EM converged |
-| Water freezes into a lattice | Add ~10% `WF` antifreeze beads |
-| Runs are painfully slow | You're running on `/mnt/c/`. Move to `~/cgmd/` |
-| Barostat + gen_vel warning | Expected; `-maxwarn 1` on the production grompp only |
+| LINCS warnings / crash in first ps | `dt` too large too early — ramp 5 → 10 → 20 fs |
+| Water freezes into a lattice | add ~10% `WF` antifreeze beads |
+| Runs are painfully slow | you're on `/mnt/c/` — move to `~/cgmd/` |
 
 ---
 
-## 11. Corrections this file makes to `README.md`
+## 14. What this changes in `README.md`
 
-The README is sound on strategy. Four things need updating from what was verified here:
-
-1. **§3 Step 1** — `-el 0.5 -eu 0.9` → **`-el 0 -eu 0.85`** (current tutorial values).
-2. **§2 tools table** — DSSP/`mkdssp` is a trap on modern Ubuntu. Use `mdtraj` + bare
-   `-dssp`.
-3. **§3 Step 1** — must state explicitly: **one martinize2 run per chain**, never on the
-   docked complex. This is the difference between a valid and an invalid study.
-4. **§3 Step 0** — currently says "start from the HDOCK best-pose complexes". That is
-   misleading. Coarse-grain the **clean single-protein files** (`zein_model.pdb`,
-   `whey/beta_whey_clean.pdb`) and use the HDOCK output only as a placement template.
-   HDOCK's copy of zein is missing residues 28–42 and has no hydrogens; the clean files
-   are complete, and because HDOCK is rigid-body (verified, RMSD 0.000 Å) they carry
-   exactly the same structure.
-5. **Paths** — the docking outputs now live in `../Molecular_docking/HDOCK_Huazhong/`,
-   not `../Molecular_docking/HADDOCK/`. The README's links are stale.
+1. **§3 Step 0** — "start from the HDOCK best-pose complexes" is superseded. No docked pose
+   is used; the adsorption site is an output.
+2. **§3 Step 0 (patch)** — the README's "4–9 zein copies" patch becomes a **~25-chain dense
+   slab with periodic x/y**, justified by the curvature calculation in §0.1 rather than by
+   compute limits.
+3. **§3 Step 1** — `-el 0.5 -eu 0.9` → `-el 0 -eu 0.85`, and the elastic network applies to
+   **α-lactalbumin only**. Zein uses `-ff martini3IDP` with no network.
+4. **§2 tools table** — DSSP/`mkdssp` is a trap on modern Ubuntu. Add `pdb2pqr`, which does
+   missing-atom repair and pH assignment in one step and replaces the manual
+   Henderson–Hasselbalch renaming procedure.
+5. **§3 Step 2** — pressure coupling is **semiisotropic** for the slab, not isotropic.
+6. **§4 limitations** — add the absence of caseinate as the primary structural gap, and the
+   Martini 3 flexible-protein stickiness caveat as the primary force-field gap.
+7. **New** — the Stage V solvent-quality validation has no counterpart in the README and
+   should be added; it is the only available test of whether the CG model captures zein's
+   defining physical property.
+8. **Paths** — docking outputs are in `../Molecular_docking/HDOCK_Huazhong/`, not
+   `../Molecular_docking/HADDOCK/`.
 
 ---
 
-## 12. References
+## 15. References
 
-- Martini 3 protein models tutorial — [Tutorial I.I: setup and structure bias models](https://cgmartini.nl/docs/tutorials/Martini3/ProteinsI/Tut1.html) · [I.III: IDRs](https://cgmartini.nl/docs/tutorials/Martini3/ProteinsI/Tut3.html)
-- Martini 3 force field download — [particle definitions (`martini_v300.zip`)](https://cgmartini.nl/docs/downloads/force-field-parameters/martini3/particle-definitions.html)
+- Martini 3 protein models tutorial — [I.I setup and structure bias models](https://cgmartini.nl/docs/tutorials/Martini3/ProteinsI/Tut1.html) · [I.III IDRs](https://cgmartini.nl/docs/tutorials/Martini3/ProteinsI/Tut3.html)
+- Martini 3 force field — [particle definitions (`martini_v300.zip`)](https://cgmartini.nl/docs/downloads/force-field-parameters/martini3/particle-definitions.html) · [solvents (ethanol)](https://cgmartini.nl/docs/downloads/force-field-parameters/martini3/solvents.html)
 - Reference production `.mdp` — [Martini MD parameters](https://cgmartini.nl/docs/downloads/example-input-files/md-parameters.html)
-- martinize2 / vermouth — [GitHub](https://github.com/marrink-lab/vermouth-martinize) · [docs](https://vermouth-martinize.readthedocs.io/en/latest/) · [eLife 2024](https://doi.org/10.7554/eLife.90627.2)
-- GROMACS installation — [current install guide](https://manual.gromacs.org/documentation/current/install-guide/index.html)
-- Martini3-IDP — [Nat. Commun. 2025](https://www.nature.com/articles/s41467-025-58199-2) · [parameters repo](https://github.com/Martini-Force-Field-Initiative/Martini3-IDP-parameters)
+- martinize2 / vermouth — [GitHub](https://github.com/marrink-lab/vermouth-martinize) · [eLife 2024](https://doi.org/10.7554/eLife.90627.2)
+- Martini3-IDP — [Nat. Commun. 2025](https://www.nature.com/articles/s41467-025-58199-2)
 - Rescaling protein–protein interactions for flexible proteins — [Nat. Commun. 2024](https://www.nature.com/articles/s41467-024-50647-9)
+- PDB2PQR / PROPKA — [docs](https://pdb2pqr.readthedocs.io/)
+- GROMACS — [install guide](https://manual.gromacs.org/documentation/current/install-guide/index.html)

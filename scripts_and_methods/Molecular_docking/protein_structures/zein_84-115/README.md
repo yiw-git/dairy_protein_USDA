@@ -1,3 +1,26 @@
+> ## ⏹️ SUPERSEDED AS A DOCKING RECEPTOR
+>
+> This folder was created to serve as the zein receptor for HADDOCK/MEGADOCK.
+> **That use was retired.** The justification below — five ColabFold models
+> converging on this region at 0.3–1.1 Å — does not hold up:
+>
+> | Check | Value |
+> |---|---|
+> | Secondary structure of 84–115 | **100% α-helix** (φ/ψ SD 2.7°/3.2°) |
+> | RMSD to a *generic* ideal poly-Ala helix | **0.59 Å mean** |
+> | Cross-model RMSD (the original argument) | 0.3–1.1 Å |
+>
+> Same magnitude. Any two α-helices of equal length superimpose to ~0.5 Å
+> regardless of sequence, so the agreement is **secondary-structure**
+> confidence and carries no tertiary-structure information. A bare helix is a
+> smooth cylinder — no pocket, no groove — leaving shape-complementarity
+> docking rotationally and translationally degenerate.
+>
+> The files remain valid and correctly built; only the *interpretation* changed.
+> See `../../DOCKING_STATUS_AND_NEXT_STEPS.md` §5b and §6.
+
+---
+
 # zein_84-115 — the high-confidence α-zein docking receptor
 
 **File:** `zein_helix_84_115.pdb`

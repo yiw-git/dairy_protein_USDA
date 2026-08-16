@@ -1,3 +1,22 @@
+> # ⏹️ SUPERSEDED — PREPARED BUT NOT RUN
+>
+> Retained for provenance. Do not run without reading this box.
+>
+> This sheet docks against `zein_helix_84_115.pdb`, justified below by the
+> claim that five ColabFold models converge on that region (0.3–1.1 Å RMSD).
+> **That justification has been withdrawn.** Region 84–115 is 100% α-helix and
+> superimposes on a *generic* ideal poly-alanine helix to **0.59 Å** — the same
+> magnitude as the cross-model agreement. The models agree because a helix is a
+> helix; it is secondary-structure confidence carrying no tertiary information.
+>
+> A bare 32-residue helix is a smooth cylinder with no pocket or groove, so
+> shape-complementarity docking is rotationally and translationally degenerate
+> against it. The docking leg was closed on this basis.
+>
+> See `../DOCKING_STATUS_AND_NEXT_STEPS.md` §5b Finding 2 and §6.
+
+---
+
 # HADDOCK 2.4 submission sheet — zein helix vs 5 milk proteins
 
 Server: https://wenmr.science.uu.nl/haddock2.4/ (free, academic registration required — approval can take 1–2 days)
