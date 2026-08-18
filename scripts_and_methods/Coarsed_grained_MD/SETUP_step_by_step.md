@@ -7,6 +7,30 @@ with α-lactalbumin adsorbing onto it from solution. One condition: pH 5.5, ~80 
 Companion to [`README.md`](README.md). The README says *what* Method 3C is and *why*.
 This file says **what to type, in what order, starting from zero**, on **WSL2 (Ubuntu)**.
 
+---
+
+## 🔖 WHERE YOU ARE — progress bookmark
+
+> **Last worked on: 2026-08-18. Paused for ~1 week. Resume target: week of 2026-08-25.**
+>
+> | Stage | Section | Status |
+> |---|---|---|
+> | A — WSL2 / GROMACS / martinize2 / insane | §2 | ✔ done |
+> | B — prepare the two structures (pdb2pqr, pH 5.5) | §3 | ✔ done — **this is where I stopped** |
+> | **C — coarse-grain with martinize2** | **§4** | **⏸ NEXT — start here** |
+> | V — force-field validation | §6 | ☐ not started |
+> | 1 — build dense zein phase | §7 | ☐ not started |
+> | 2 — create the interface | §8 | ☐ not started |
+> | 3 — α-LA adsorption | §9 | ☐ not started |
+> | 4 — analysis | §10 | ☐ not started |
+>
+> **Jump straight to the ⏸ RESUME HERE banner just above [§4 Stage C](#4-stage-c--coarse-grain-with-different-treatments-).**
+>
+> *(Note: the ✅ / 📐 marks elsewhere in this file mean "verified vs. design only" — they
+> are NOT progress marks. This table is the progress record.)*
+
+---
+
 > ### Verification status — read this before trusting a number
 >
 > **✅ VERIFIED — actually executed against your real files** (martinize2 / vermouth 0.15.0,
@@ -377,6 +401,60 @@ titration curve is nearly flat: net charge moves only from +4.9 to +2.0 across p
 > calcium-binding site have substantially elevated pKa values. This gap is exactly why the
 > `--titration-state-method propka` step is worth running rather than renaming residues by
 > hand.
+
+---
+
+---
+
+# ⏸ RESUME HERE — restart point after the ~1 week break
+
+**You stopped after Stage B (§3). Everything below this line is new work.**
+
+### 1. Wake the environment back up
+
+```bash
+cd ~/cgmd/slab
+source ~/cgmd/venv/bin/activate       # the venv from §A5 — martinize2 lives here
+martinize2 --version && gmx --version | head -3
+```
+
+### 2. Confirm Stage B really finished before moving on
+
+```bash
+ls -l ala_ph55.pdb zein_ph55.pdb
+grep -c "^ATOM" ala_ph55.pdb zein_ph55.pdb
+grep -E "GLU A 121|LYS A 122" ala_ph55.pdb | wc -l   # side-chain tips must now exist
+```
+
+- Both files present and non-empty, and the GLU121/LYS122 lines look complete → **Stage B is
+  done, go to §4 Stage C below.**
+- Either file missing → **re-run the two `pdb2pqr30` commands in [§3.2](#32-fix-missing-atoms-and-set-ph-in-one-command)**
+  (they are cheap, seconds each). Then continue.
+
+### 3. ⚠️ Filename trap in the Stage C commands right below
+
+§3.2 writes **`ala_ph55.pdb` / `zein_ph55.pdb`**, but the `martinize2` commands in §4 as
+written still say **`ala_ph66.pdb` / `zein_ph66.pdb`** (left over from the earlier pH 6.6
+run). The project condition is **pH 5.5** — edit `66` → `55` in both commands, or
+martinize2 will fail with "file not found" (or worse, silently use stale pH 6.6 files if
+they are still lying around).
+
+Consequence if you get this wrong: the verified table in §4 lists α-lactalbumin at net
+charge **−4**, which is the **pH 6.6** value. At **pH 5.5** the correct α-LA net charge is
+**−1** (see the table in §3.3). Use that as your check that you coarse-grained the right file.
+
+### 4. Then work through, in order
+
+`§4 Stage C` → `§5 shared .mdp files` → `§6 Stage V validation` (do this before anything
+expensive) → `§7 Stage 1` → `§8` → `§9` → `§10`.
+
+Remember: from §6 onward the file is **📐 design only, never executed** — expect to debug.
+Keep §13 Troubleshooting open.
+
+### 5. When you finish a stage
+
+Tick it in the 🔖 progress table at the top of this file, and move this ⏸ banner down to the
+next stage heading. Future-you will thank you.
 
 ---
 
