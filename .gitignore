@@ -6,6 +6,17 @@
 /reference/
 /report_summary/
 
+# Exception: the scripts that generate ACS2026 slide figures are code, so they
+# are tracked. Git cannot re-include a file under an excluded directory, so
+# each parent level is reopened before the *.py negation.
+!/report_summary/
+/report_summary/*
+!/report_summary/ACS2026/
+/report_summary/ACS2026/*
+!/report_summary/ACS2026/figures/
+/report_summary/ACS2026/figures/*
+!/report_summary/ACS2026/figures/*.py
+
 # --- Python ---
 __pycache__/
 *.py[cod]
