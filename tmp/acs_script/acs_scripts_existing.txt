@@ -1,0 +1,79 @@
+FILE: C:\Users\nnjj1\UMD-work\dairy_protein_USDA\report_summary\ACS2026\ACS-Scripts.docx
+[Normal] ACS
+[Normal] Slides 10 pages
+[Normal] 01 title
+[Normal] 02 content
+[Normal] 03 introduction-nanotechnology is very mature but most of the work was done on the oversimplified envinonment as the PBS water without consideration of interfere like ionic, ph, other food ingredient interference. List more conditions
+[Normal] (for image: list images of NPs and also the confidtiosn or food matrix/systems, like milk, yogurt and bread or others)
+[Normal] 04 introduction
+[Normal] Another problem listing is that the wet lab heavy and time consuming and cannot predict, most is based on literature and experience.
+[Normal] 05 stage
+[Normal] List the purpose of the stage 1
+[Normal] 1. DLVO theory. Two forces used to keep the NPs stable. Most popular in surfache chemistry and then used in other field
+[Normal] List the equation and then label the a(diameter) and charge and others that need to be collected or calculated.
+[Normal] Prepare NPs, use plot.
+[Normal] Then collect the data point. Show plots of glass vials. Two bar plots
+[Normal] 06
+[Normal] Show the plot and milk, yogurt and bread as the example food.
+[Normal] limitation did not consider the casein micelles steric hinderance
+[Normal] 07 part 2 retrieve protein PDB from public dataset. (whey directly from dataset but zein cannot have the clear crystal structure) it is a hard task.
+[Normal] Zein can only have the predicted structure fro alphafold as one of the possible structure.
+[Normal] 08
+[Normal] 09
+[Normal] 10 on-going work
+[Normal] 11 acknowledgements photo of Dr. Wang and Dr. Luo
+[Normal] 12 promotion of journal
+[Normal] Slide 1 — Title
+Computational Modeling of Zein–Caseinate Nanoparticle Behavior in Dairy Protein Systems
+Yi Wang, Liping Zhang, Qin Wang · University of Maryland · ACS 2026
+[Normal] Slide 2 — Contents
+Introduction & Objectives / DLVO Modeling / Molecular Docking / Coarse-Grained MD Outlook / Summary
+[Normal] Slide 3 — Introduction: the gap
+[Normal] Nanoparticle science is mature, but most work is done in oversimplified media (PBS, DI water)
+[Normal] Real food matrices add ionic strength, pH shifts, competing proteins, sugars, fat — milk, yogurt, bread
+[Normal] Protein corona forms immediately and changes size, charge, and stability
+[Normal] Image: NP schematic + milk / yogurt / bread photos
+[Normal] Slide 4 — Introduction: why computation
+[Normal] Wet-lab screening is slow, material-intensive, and largely trial-and-error from literature/experience
+[Normal] Objective: use computational simulation to predict how food nanoparticles behave and change in food systems
+[Normal] Goal: save time and materials → rational design of nanocarriers → better nutrient encapsulation and delivery
+[Normal] Three-method strategy: DLVO (bulk energetics) → docking (residue-level contacts) → CG-MD (dynamic, crowded surface)
+[Normal] Slide 5 — DLVO: framework and data
+[Normal] Classical DLVO = electrostatic double-layer repulsion + van der Waals attraction; V_max sets kinetic stability (>15 kT stable, 10–15 marginal, <10 unstable)
+[Normal] Inputs measured by DLS/ELS: particle radius a, zeta potential, pH, ionic strength → Debye length, Grahame equation
+[Normal] Measured grid: pH 3–7 × 25–100 mM, 12 conditions (zein–caseinate NPs, pH-driven method)
+[Normal] Image: energy_profiles.png or vial photos
+[Normal] Slide 6 — DLVO: progress and limitation
+[Normal] IEP located at pH ~4.06, well below the ~5.8 reported for bare zein → caseinate genuinely reshapes surface chemistry
+[Normal] CCC signature at pH 4: 246 → 441 → 8404 nm across 25/50/100 mM
+[Normal] All measured and food-relevant conditions (whole milk, yogurt, bread-release) fall below 10 kT — no barrier; |ζ| ≤ 14 mV and V_EDL ∝ ζ²
+[Normal] Limitation: classical DLVO ignores steric hindrance from the caseinate/casein-micelle layer, hydration forces, and non-sphericity → extended DLVO with a steric term is the next step
+[Normal] Image: condition_barrier_barchart.png + stability_map.png
+[List Paragraph] One clarification on my statement: you want to use HDOCK or MegaDock, not AutoDock, because AutoDock is for small molecules. However, I would say you do not need to mention which software we used, because the audience may not be interested in which docking software you are using.
+[List Paragraph] Instead, they would like to see some nice figures or plots. I do want you to clarify or show the structures of the whey protein, the zein protein, and the casein protein.
+[List Paragraph] Specifically:
+[List Paragraph] 1. What do their structures look like in their natural form (for example, in milk)?
+[List Paragraph] 2. What is their composition (for example, the alpha unit or beta unit)?
+[List Paragraph] Could you show the plots for them? And also for the zein nanoparticles (zein, Z-E-I-N), you need to mention that it is water-insoluble and composed of a lot of hydrophobic amino acids.
+[List Paragraph] The audience may not have even heard of zein. They might have heard of whey or casein, but they likely do not know what they are composed of, so you want to mention that as well. Just keep it as a brief introduction.
+[Normal] Slide 7 — Molecular docking: setup
+[Normal] Protein–protein docking (MEGADOCK / HDOCK), not AutoDock Vina — corona is protein-on-protein
+[Normal] Whey (β-lactoglobulin, α-lactalbumin) structures available from PDB; α-zein has no crystal structure → AlphaFold/ColabFold prediction only
+[Normal] Zein model quality is the bottleneck: mean pLDDT 49, cross-model Cα RMSD 13.7–21.5 Å
+[Normal] Image: zein_alpha pLDDT plot
+[Normal] Slide 8 — Molecular docking: a negative result with a mechanism
+[Normal] Five milk proteins scored 5.16–5.82 (Z) — statistically indistinguishable; no specific binding site
+[Normal] Restraining to 40 exposed residues gave only 3–6 residue interfaces (span 92.8 Å, not a contiguous surface)
+[Normal] The one confident region (84–115) is a generic α-helix (0.59 Å to ideal poly-Ala) — no usable tertiary information
+[Normal] Interpretation: corona formation is non-specific and multivalent — the expected biology, and the justification for CG-MD
+[Normal] Image: all5_zein_partners_comparison.png
+[Normal] Slide 9 — Coarse-grained MD: the outlook
+[Normal] MARTINI 3 + martinize2 + GROMACS: ~4 heavy atoms → 1 bead, 20 fs timestep → hundreds of ns feasible on one GPU
+[Normal] Step-by-step plan: (1) build a multi-chain zein surface patch instead of a single chain; (2) add 2–4 milk proteins above it; (3) solvate at target pH/ionic strength; (4) measure contact persistence and adsorption over time; (5) feed an effective steric/adhesion term back into extended DLVO
+[Normal] What it supplies that docking cannot: a real curved crowded surface, conformational ensembles, avidity, explicit solution conditions
+[Normal] Realistic near-term success: 1–2 conditions, one clean trajectory, a preliminary trend
+[Normal] Slide 10 — Summary & Significance
+[Normal] A three-tier computational pipeline (DLVO → docking → CG-MD) for predicting food-nanoparticle behavior in real food matrices
+[Normal] Each tier answers what the one below cannot: does a barrier exist → which contacts → does the interface survive thermal motion
+[Normal] Delivered so far: caseinate-shifted IEP, CCC window at pH 4, quantified instability across three food environments, and a mechanistic explanation for why rigid docking fails on nanoparticles
+[Normal] Impact: less wet-lab trial-and-error, rational nanocarrier design, improved nutrient encapsulation and delivery

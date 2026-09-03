@@ -1,0 +1,165 @@
+FILE: C:\Users\nnjj1\UMD-work\dairy_protein_USDA\report_summary\ACS2026\ACS2026_slides_YW_0821.pdf
+PAGES: 14
+
+===== PAGE 1 =====
+Protein Corona Formation on Zein
+Nanoparticles in Dairy Protein Systems:
+A Computational Modeling Approach
+Yi Wang, Liping Zhang, Qin Wang
+Department of Nutrition and Food Science, University of Maryland, College Park
+ACS Fall 2026 · Division of Agricultural and Food Chemistry
+1
+
+===== PAGE 2 =====
+Outline
+●
+Introduction — nanoparticles in real food matrices
+●
+DLVO modeling — does a stability barrier exist?
+●
+Molecular docking — which contacts drive the corona?
+●
+Coarse-grained MD — does the interface hold? (outlook)
+●
+Summary and significance
+2
+
+===== PAGE 3 =====
+Why discuss nanoparticles in real foods?
+●
+Goals: nutrient-fortified foods — curcumin, vitamin D or ω-3 in everyday products
+●
+These bioactives are poorly soluble, unstable, and poorly absorbed on their own
+●
+Nanoencapsulation protects the bioactives and improves bioavailability
+●
+But the carrier must survive the food matrix first — ions, pH, competing proteins
+Nanocarrier
+Vitamin D
+3
+
+===== PAGE 4 =====
+Why model it computationally?
+●
+Wet-lab screening is slow and material-intensive — one condition at a time
+●
+Objective: predict how the carrier behaves in a food system before we make it
+●
+Saves time and material → rational nanocarrier design → better encapsulation and delivery
+●
+Three levels, coarse to fine — to predict the NPs behaviors in food systems
+4
+
+===== PAGE 5 =====
+The three proteins in play
+●
+Whey: compact, folded, water-soluble — β-lactoglobulin (18 kDa), α-lactalbumin (14 kDa)
+●
+Casein: no fixed fold — ~80% of milk protein, assembled into ~150 nm micelles
+●
+Zein: maize prolamin, water-insoluble — 60% hydrophobic residues, only 2% charged
+5
+
+===== PAGE 6 =====
+DLVO: from DLS data to a stability barrier
+●
+DLVO = electrostatic double-layer repulsion + van der Waals attraction
+●
+Inputs are what we already measure — a and ζ from DLS / ELS, pH and ionic strength
+6
+
+===== PAGE 7 =====
+DLVO: from DLS data to a stability barrier
+●
+DLVO = electrostatic double-layer repulsion + van der Waals attraction
+●
+Measured grid: pH 4–7 × 10–150 mM, 9 conditions × 3 replicates
+7
+
+===== PAGE 8 =====
+DLVO: findings and limitation
+●
+IEP ≈ 4.94 (bare zein ≈ 6.2) — caseinate changes the surface chemistry
+●
+At 10 mM there is a real barrier — 17 to 49 kT across pH 4–7 (n = 3)
+●
+It collapses with ionic strength — pH 7: 49 kT (10 mM)→ 5.6 kT (10 mM)→ ≈ 0kT (150 mM)
+●
+All three food conditions stay below 10 kT; DLVO still has no steric term
+8
+
+===== PAGE 9 =====
+Docking: no protein wins, and why
+●
+Five milk proteins docked onto the predicted zein surface — scores are indistinguishable
+AlphaFold predicted structures
+Restrain to hydrophilic surface residues (zein)
+MEGADOCK GPU rigid-body FFT search
+Rank top 10 poses; check contacts
+Compare scores across five proteins
+9
+
+===== PAGE 10 =====
+Docking: no protein wins, and why
+●
+Five milk proteins docked onto the predicted zein surface — scores are indistinguishable
+●
+Restrained interfaces were only 3–6 residues, all five converging on residues 37–39
+●
+The limit is the zein structure, not the docking — there is no reproducible fold to dock against
+●
+So the corona is non-specific and multivalent — the question moves to coarse-grained MD
+Examples: zein and BLG (β-whey) docking The zein model is not reproducible
+Colored by prediction confidence
+Five independent predictions of
+(red low → blue high)
+the same sequence
+confident part = residues 84-11105, a plain
+α-helix
+
+===== PAGE 11 =====
+Coarse-grained MD: the plan
+●
+Build a multi-chain zein surface patch, not a single chain
+●
+Place 2–4 milk proteins above it, so multivalent contact is possible
+●
+Solvate at a defined pH and ionic strength
+●
+Run it, and measure whether the docking-predicted contacts persist
+●
+Extract an effective steric term — and feed it back into extended DLVO
+11
+
+===== PAGE 12 =====
+Summary and significance
+●
+Three tiers, coarse to fine — each answers what the one before it cannot
+●
+Zein–caseinate NPs are stable at low ionic strength, but no food condition clears 10 kT
+●
+Rigid docking cannot resolve selectivity on a nanoparticle — a negative result with a
+mechanism
+●
+Impact: less trial and error, rational nanocarrier design, better nutrient delivery
+12
+
+===== PAGE 13 =====
+Acknowledgements
+USDA NIFA 2023-67022398U24
+Dr. Changqing Wu, University of Delaware
+Feel free to reach out:
+Yi Wang
+Email: ywang223@umd.edu
+13
+
+===== PAGE 14 =====
+A gold open access journal on technologies and processes for
+production of safe, high-quality food in environmentally sustainable way
+• Editor-in-Chief – Jorge Barros-Velázquez
+• Impact Factor (2025) – 9.0
+• Acceptance rate 2025 – 27%
+• Time to first decision – 42 days (peer review only)
+• Indexed in Web of Science (ESCI), Scopus and DOAJ
+• Transparent peer review option available
+@susfoodtech.rsc.org #RSCFood

@@ -24,13 +24,13 @@ for I,g in cs.groupby('ionic_strength_mM'):
                 capsize=2.0, elinewidth=0.9, color=colors[I], label=f"{int(I)} mM")
 ax.axhline(0, color='#BBBBBB', lw=0.8)
 ax.axvline(4.94, color=RED, ls='--', lw=1.2)
-ax.text(5.03, 6.5, "IEP ≈ 4.94", fontsize=7, color=RED, va='center', ha='left')
+ax.text(5.06, 11.2, "particle IEP ≈ 4.94", fontsize=7, color=RED, va="center", ha="left")
 ax.axvline(5.8, color=GREY, ls=':', lw=1.1)
 ax.text(5.90, -41.4, "bare zein ≈ 5.8 (lit.)", fontsize=7, color=GREY, va='bottom', ha='left')
 ax.set_xlabel("pH", fontsize=8, labelpad=1.5); ax.set_ylabel("ζ (mV)", fontsize=8, labelpad=1.5)
 ax.set_xlim(3.5, 7.5); ax.set_ylim(-42, 14)
-ax.legend(fontsize=6.5, frameon=False, loc='upper right', handlelength=1.2, borderaxespad=0.2)
-ax.set_title("Caseinate shifts the IEP", fontsize=9, fontweight='bold', color=DARK, pad=4)
+ax.legend(fontsize=6.5, frameon=False, loc='lower left', handlelength=1.2, borderaxespad=0.3)
+ax.set_title("Caseinate shifts the particle IEP", fontsize=9, fontweight='bold', color=DARK, pad=4)
 
 # ---- (b) radius vs ionic strength ----
 ax=axes[1]

@@ -10,7 +10,7 @@ ax.set_xlim(0,16); ax.set_ylim(0,4.48); ax.axis('off')
 cards = [
  ("1","DLVO","Does a barrier exist?","IEP shifted to 4.94\nby the caseinate\n17–49 kT at 10 mM — real stability\ncollapses with salt; CCC at pH 4"),
  ("2","Docking","Which contacts form?","no specific site among\nfive milk proteins\ninterfaces of only 3–6 residues\n→ non-specific, multivalent corona"),
- ("3","Coarse-grained MD","Does the interface hold?","next: a 12 nm patch,\n~2 × 10⁴ beads\ncontact persistence over time\na steric term for extended DLVO"),
+ ("3","Coarse-grained MD","Does the interface hold?","next: a 12 nm patch,\n~2 × 10⁴ beads\ncontact persistence over time\nprotein-layer repulsion for DLVO"),
 ]
 CW, CH = 4.80, 3.05
 CY0, CY1 = 0.96, 0.96+CH
@@ -37,7 +37,7 @@ for x0,x1 in [(5.10,5.52),(10.48,10.90)]:
 ax.add_patch(FancyArrowPatch((13.38, CY0-0.04),(2.62, CY0-0.04),
              connectionstyle="arc3,rad=-0.10", arrowstyle='-|>', mutation_scale=14,
              lw=1.6, color=GREY, linestyle=(0,(5,3)), zorder=0))
-ax.text(8.0, 0.04, "the steric term measured in step 3 is exactly what step 1 is missing",
+ax.text(8.0, 0.04, "the protein-layer repulsion measured in step 3 is exactly what step 1 is missing",
         ha='center', va='bottom', fontsize=10.5, color=GREY, zorder=6)
 
 plt.subplots_adjust(left=0, right=1, top=1, bottom=0)

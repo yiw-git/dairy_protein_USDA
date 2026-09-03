@@ -1,0 +1,130 @@
+FILE: C:\Users\nnjj1\UMD-work\dairy_protein_USDA\report_summary\ACS2026\ACS2026_speaker_script.docx
+[Title] 好的，我把原来的 slides 关掉了，你可以重新整合一份。ACS Spring 2026 — Speaker Script
+[Normal] Protein Corona Formation on Zein Nanoparticles in Dairy Protein Systems: A Computational Modeling Approach
+[Normal] Yi Wang, Liping Zhang, Qin Wang · University of Maryland · 10 slides, target ~14 min + Q&A · DLVO numbers from the 08/10/2026 formulation (n = 3)
+[Heading 1] Slide 1 — Title
+[Normal] Target time: 0:20    On screen: Talk title, authors, UMD affiliation, ACS meeting line.
+[Normal] Script
+[Normal] Good morning. My name is Yi Wang, from the Department of Nutrition and Food Science at the University of Maryland.
+[Normal] Today I want to talk about protein corona formation on zein nanoparticles in dairy protein systems — and specifically about how we are using computational modeling to predict it.
+[Normal] Delivery note
+[Normal] Don't read the title aloud word for word. One sentence of who you are, one sentence of what the talk is.
+[Heading 1] Slide 2 — Outline
+[Normal] Target time: 0:20    On screen: Five bullets: introduction, DLVO, docking, coarse-grained MD, summary.
+[Normal] Script
+[Normal] The talk has three technical parts, and each one answers a question the previous one cannot.
+[Normal] DLVO asks whether a stability barrier exists at all. Docking asks which residues actually make contact. And coarse-grained MD asks whether that contact survives thermal motion in a crowded, curved environment.
+[Normal] Delivery note
+[Normal] This framing — three methods, three questions — is the spine of the whole talk. Repeat it at the summary.
+[Heading 1] Slide 3 — Why put nanoparticles into real food?
+[Normal] Target time: 1:30    On screen: Four bullets; three-panel schematic below (particle -> corona -> milk / yogurt / bread photos).
+[Normal] Script
+[Normal] Let me start with why we are putting nanoparticles into food at all. The goal is nutrient-fortified foods — delivering compounds like curcumin, vitamin D, or omega-3 in everyday products.
+[Normal] The problem is that those compounds are poorly water-soluble, unstable to heat and light, and poorly absorbed on their own. Nanoencapsulation in a food-grade protein carrier protects the payload and improves dispersibility and bioavailability.
+[Normal] But here is the catch. Almost all of that nanoparticle work is characterized in a very simple environment — PBS, or deionized water, at a controlled pH. A real food is nothing like that: high ionic strength, calcium, a shifting pH, competing proteins, sugars, fat.
+[Normal] So the carrier itself has to survive the food matrix first. And the moment it enters that environment, food proteins adsorb onto its surface and form a protein corona — which changes size, surface charge and colloidal stability, and therefore changes the delivery performance we designed for.
+[Normal] Numbers to have ready
+[Normal] Our DLS: particles grow from ~150 nm to 180-220 nm in whey and 200-250 nm in casein, with zeta shifting toward zero. Food targets: milk pH 6.6 / 80 mM · yogurt pH 4.5 / 20 mM · bread-release pH 5.3 / 50 mM.
+[Normal] Delivery note
+[Normal] Say the term 'fortified food' out loud early — it answers the 'why bother' question before anyone asks it. Then land 'protein corona' clearly.
+[Heading 1] Slide 4 — Why model it computationally?
+[Normal] Target time: 1:30    On screen: Four bullets; three-card pipeline (DLVO -> docking -> CG-MD) with a dashed feedback arrow back to DLVO.
+[Normal] Script
+[Normal] The second problem is practical. Wet-lab screening is slow and material-intensive — one condition at a time, a fresh prep, a fresh DLS run, a fresh gel. And the choice of what to try next comes mostly from literature and experience, not from prediction.
+[Normal] So our objective is this: predict how the carrier behaves in a food system before we make it. That saves time and material, it lets us design nanocarriers rationally instead of by trial and error, and it should improve encapsulation and delivery.
+[Normal] We work at three levels, coarse to fine, and each answers a question the one before it cannot. DLVO, at the whole-particle scale, asks whether a stability barrier exists. Docking, at the residue scale, asks which contacts form. Coarse-grained MD, at the surface-patch scale, asks whether that interface actually holds.
+[Normal] And notice the dashed arrow at the bottom: the effective steric and adhesion term that comes out of the MD is meant to feed back into an extended DLVO model. These are three methods that hand results to each other, not three separate calculations.
+[Normal] Delivery note
+[Normal] Say the word 'objective' out loud so the audience knows this is the aims slide. This same picture comes back at the end.
+[Heading 1] Slide 5 — DLVO — from DLS data to a stability barrier
+[Normal] Target time: 2:00    On screen: Equations (left), illustrative V(D) curve with V_max marked (middle), vial photos (right — placeholder for now).
+[Normal] Script
+[Normal] Classical DLVO describes colloidal stability as the sum of two forces: electrostatic double-layer repulsion, which keeps particles apart, and van der Waals attraction, which pulls them together.
+[Normal] Their sum gives an interaction-energy curve, and the height of its maximum — the energy barrier — tells you whether the particles are kinetically stable. Above roughly fifteen kT, stable. Below ten, fast aggregation.
+[Normal] What matters for this audience is that the inputs are things we already measure. Particle radius and zeta potential come straight from DLS and ELS; the Debye length comes from ionic strength; only the Hamaker constant is taken from the literature — one times ten to the minus twenty joules, the value fit specifically for zein.
+[Normal] Our grid is pH four, five point five and seven, crossed with ionic strengths of ten, fifty and one hundred fifty millimolar — nine conditions, three replicates each, on pH-driven zein-caseinate nanoparticles.
+[Normal] Numbers to have ready
+[Normal] Thresholds: V_max > 15 kT stable · 10-15 kT marginal · < 10 kT unstable. Debye length 3.04 / 1.36 / 0.79 nm at 10 / 50 / 150 mM. Hamaker 1.0e-20 J (Su et al. 2024). The V(D) curve on this slide is illustrative (a = 100 nm, zeta = 45 mV, I = 50 mM), NOT our data.
+[Normal] Delivery note
+[Normal] Point at the a and the zeta in the equation while saying 'things we already measure' — that is the sentence that makes the method feel accessible. Note out loud that the curve is a schematic.
+[Heading 1] Slide 6 — DLVO — findings and limitation
+[Normal] Target time: 2:00    On screen: Three panels: zeta vs pH with error bars · radius vs ionic strength at pH 4 and 7 · V_max bar chart with the 10 and 15 kT thresholds.
+[Normal] Script
+[Normal] Three findings, from the 08/10 formulation, three replicates per condition.
+[Normal] First, the isoelectric point. The fit puts it at about pH four point nine, where bare zein is reported near five point eight. So the caseinate is not simply screening the zein surface — it changes the particle's surface chemistry.
+[Normal] Second — and this is the encouraging one — at ten millimolar there is a real barrier. Seventeen kT at pH five point five, thirty-six at pH four, forty-nine at pH seven. Those are genuinely stable particles, well above the fifteen kT threshold.
+[Normal] Third, that barrier collapses with ionic strength. Follow pH seven across the three salt levels: forty-nine kT, then five point six, then essentially zero. And at pH four with one hundred fifty millimolar the DLS radius jumps to eight thousand nanometers — a critical coagulation signature sitting somewhere between fifty and one hundred fifty millimolar.
+[Normal] Now the food conditions. All three fall below ten kT, so none is predicted stable as currently formulated. The closest is yogurt, at about five point seven kT, because its ionic strength is only twenty millimolar — low-ionic-strength systems are where this formulation has the best chance.
+[Normal] And the honest limitation. Classical DLVO knows only about charge and van der Waals. It has no steric term for the caseinate layer or casein micelles, and no hydration force. For a protein-coated particle in milk those are exactly the terms you would expect to supply the missing stabilization — which is why the next step is extended DLVO with an explicit steric term, and why the coarse-grained MD matters.
+[Normal] Numbers to have ready
+[Normal] IEP approx 4.94 (lit. bare zein 5.8) · 10 mM: 35.7 / 17.3 / 48.6 kT at pH 4 / 5.5 / 7 · pH 7 across salt: 48.6 -> 5.6 -> -0.1 kT · pH 4 / 150 mM: radius 313 -> 357 -> 8000 nm, V_max -30.5 kT · food: yogurt +5.7, whole milk -0.20, bread-release -0.20 kT · n = 3, SD shown.
+[Normal] Delivery note
+[Normal] Do not oversell the 10 mM result — 10 mM is far below any real food. The useful framing: the chemistry can produce a barrier; the food matrix is what removes it. A second formulation (08/12) gave lower zeta and no barrier anywhere — mention only if asked.
+[Heading 1] Slide 7 — Molecular docking — setup and the structure problem
+[Normal] Target time: 1:30    On screen: Zein AlphaFold model colored by pLDDT; hydrophilic-surface render.
+[Normal] Script
+[Normal] The second level asks a question DLVO cannot: which milk protein binds the zein surface, and through which residues.
+[Normal] One clarification on method, because it matters: this is a protein binding to another protein, so the right tool is protein–protein docking — HDOCK or MEGADOCK — not AutoDock Vina, which is for a small molecule going into a pocket.
+[Normal] For the whey proteins the structures are easy: beta-lactoglobulin and alpha-lactalbumin both have crystal structures in the PDB. Alpha-zein does not. There is no clear crystal structure, so all we have is an AlphaFold prediction — and that is where the difficulty starts. The mean pLDDT of our model is forty-nine, and across five independent predictions the backbone RMSD is thirteen to twenty-one angstroms.
+[Normal] In other words, the model does not converge on a single structure.
+[Normal] Numbers to have ready
+[Normal] Whey: β-lactoglobulin 3NPO/1BEB, α-lactalbumin 1F6S. Zein: AlphaFold/ColabFold only, mean pLDDT 49, cross-model Cα RMSD 13.7–21.5 Å.
+[Normal] Delivery note
+[Normal] Also worth one sentence: docking treats zein as a single dissolved chain, but ours is a packed nanoparticle — only the outer surface is available. That mismatch is the honest framing.
+[Heading 1] Slide 8 — Molecular docking — a negative result with a mechanism
+[Normal] Target time: 2:00    On screen: Five-ligand score comparison; interface residues highlighted.
+[Normal] Script
+[Normal] We docked five milk proteins against the zein model: the two whey proteins, and alpha-S1, beta, and kappa casein fragments.
+[Normal] The scores span five point one six to five point eight two. Statistically, no ligand is distinguishable from the others. There is no specific binding site.
+[Normal] And we can say why. When we restricted docking to the forty solvent-exposed residues, those residues turned out to span ninety-three angstroms — they are not a contiguous surface — and the resulting interfaces were only three to six residues, where a real protein–protein interface is twenty to thirty. The top poses of all five ligands converged on residues thirty-seven to thirty-nine, which is simply the most protruding accessible cluster in four out of five independent structure predictions.
+[Normal] The one region we can trust, residues eighty-four to one fifteen, superimposes on a generic ideal poly-alanine helix to zero point five nine angstroms. It is a textbook alpha-helix. It tells us about secondary structure confidence and nothing about tertiary structure, which means it is useless as a docking receptor.
+[Normal] So the conclusion is not that the docking failed. The conclusion is that rigid-body docking cannot resolve milk-protein selectivity on a zein nanoparticle — and a non-specific, multivalent corona is exactly what the corona literature would predict. That is a negative result with a mechanism, and it is the strongest argument we have for moving to coarse-grained MD.
+[Normal] Numbers to have ready
+[Normal] MEGADOCK Z-scores 5.16–5.82 · technical noise ±0.004 (≈150× smaller than the spread across ligands) · 40 restrained residues span 92.8 Å · interfaces only 3–6 residues · region 84–115 is 0.59 Å from an ideal helix.
+[Normal] Delivery note
+[Normal] Deliver this as a finding, not an apology. The evidence chain — scores, interface size, generic helix — is what makes it credible.
+[Heading 1] Slide 9 — Coarse-grained MD — the plan
+[Normal] Target time: 2:00    On screen: Five steps as bullets; below, a size and cost comparison — whole 70 nm particle, 12 nm patch, log-scale bar of particle counts.
+[Normal] Script
+[Normal] The third level is coarse-grained molecular dynamics. Let me first say why we simulate a patch rather than a whole particle, because that is the design decision that makes this feasible at all.
+[Normal] Take one 70 nanometre zein nanoparticle. From the density and the 22 kilodalton chain mass, that particle is roughly six thousand zein chains — about thirty million protein atoms. Put it in a water box and you are at sixty million atoms. That is not a workstation calculation.
+[Normal] Coarse-graining alone does not rescue it. Mapping about four heavy atoms onto one bead still leaves roughly six million beads for the whole particle.
+[Normal] So we simulate a window instead, and the justification is geometric rather than hand-waving: across a twelve nanometre window, the surface of a seventy nanometre sphere deviates from flat by half a nanometre — less than the size of one coarse-grained bead. A flat raft of about nine zein chains is therefore a fair local model of that surface.
+[Normal] That patch is about twenty thousand beads: roughly two thousand seven hundred times fewer particles than the all-atom particle. Add a twenty femtosecond timestep instead of two, and hundreds of nanoseconds on a single GPU becomes realistic.
+[Normal] The steps themselves: build the patch; place two to four milk proteins above it so multivalent contact is possible; solvate at a defined pH and ionic strength, which the docking servers cannot set; run it and measure whether the docking-predicted contacts persist or drift apart; and extract an effective steric term to feed back into the extended DLVO model from slide six. That last step is what closes the loop.
+[Normal] I want to be realistic about scope. One or two representative conditions, one clean trajectory and a preliminary trend would already be a full success for this method.
+[Normal] Numbers to have ready
+[Normal] 70 nm particle: ~6,000 zein chains · ~3 × 10⁷ protein atoms · ~6 × 10⁷ atoms with water · coarse-grained whole particle ~6 × 10⁶ beads. Patch: 9 chains, 12 × 12 nm ≈ 1% of the surface, ~2 × 10⁴ beads. Curvature across a 12 nm window: 0.52 nm (35 − √(35² − 6²)). Timestep 20 fs vs 2 fs. A full corona monolayer would be ~950 β-lactoglobulin molecules.
+[Normal] Delivery note
+[Normal] The half-nanometre curvature number is the one that wins the argument — say it slowly. Use the word 'next' or 'ongoing' so nobody mistakes this for finished work.
+[Heading 1] Slide 10 — Summary and significance
+[Normal] Target time: 1:00    On screen: Four bullets; the three-tier pipeline again, each card now carrying what it delivered.
+[Normal] Script
+[Normal] To summarize. We are building a three-tier computational pipeline for predicting food nanoparticle behaviour in real food matrices, and each tier answers what the tier before it cannot: does a barrier exist, which contacts form, and does the interface hold.
+[Normal] What it has delivered so far. DLVO gave us an isoelectric point shifted to 4.9 by the caseinate coating, a genuine barrier of seventeen to forty-nine kT at low ionic strength, the collapse of that barrier as salt goes up, and a critical coagulation window at pH 4. No food condition clears ten kT as currently formulated, and yogurt — the lowest ionic strength of the three — comes closest.
+[Normal] Docking gave us a negative result with a mechanism: no specific binding site among five milk proteins, interfaces of only three to six residues, and a measured reason why — which is the strongest justification we have for the coarse-grained work.
+[Normal] And the loop closes: the steric term the MD will measure is exactly the term classical DLVO is missing.
+[Normal] Why it matters: less wet-lab trial and error, nanocarriers designed rationally rather than by experience, and ultimately better encapsulation and delivery of nutrients in real foods.
+[Normal] Thank you — I am happy to take questions.
+[Normal] Delivery note
+[Normal] End on the three-tier picture, not on a limitation. Keep the last sentence short.
+[Heading 1] Q&A preparation
+[Normal] You show a barrier at 10 mM, but milk is 80 mM. So your particles will aggregate in real milk?
+[Normal] Under classical DLVO, yes — that is exactly what the model predicts, and I would rather state it than hide it. Two things follow. First, the model has no steric term, and a caseinate layer is precisely the kind of coating that stabilizes sterically rather than electrostatically, so this is a lower bound. Second, it tells us where to look: yogurt, at twenty millimolar, is the one food condition that comes close, so low-ionic-strength systems are where this formulation should be tested first.
+[Normal] Why does classical DLVO predict aggregation when your particles clearly exist in the vial?
+[Normal] Because classical DLVO contains only charge and van der Waals. Our particles survive because of terms the model does not have — steric repulsion from the caseinate layer, and hydration forces. The disagreement is informative rather than embarrassing: it tells us which physics is missing, and that is what extended DLVO and the coarse-grained MD are for. I would not fit the Hamaker constant to hide the gap.
+[Normal] Why is your isoelectric point different from the literature value for zein?
+[Normal] Our fit puts it near pH 4.9 against about 5.8 reported for bare zein. That shift is consistent with the caseinate coating dominating the surface — what the particle presents to solution is not a bare zein surface. It is one measurement set, though, and I would want finer pH spacing around the crossover before quoting it to two decimals.
+[Normal] Why trust an AlphaFold model with pLDDT 49 at all?
+[Normal] We do not trust it as a structure, and that is the finding rather than an assumption. We measured how untrustworthy it is — thirteen to twenty-one angstrom RMSD across five predictions — and that measurement is what tells us rigid docking cannot answer the selectivity question. Zein is proline- and glutamine-rich and largely disordered in solution; an ensemble method is the appropriate tool, not a single predicted conformer.
+[Normal] Why not just do all-atom MD?
+[Normal] Cost. An all-atom system of a zein surface patch plus several milk proteins in explicit water, run long enough for adsorption, is not tractable on our hardware. Coarse-graining buys roughly a factor of ten in timestep and a several-fold reduction in particle count — the difference between a feasible run and an infeasible one.
+[Normal] How will you validate any of the simulation results?
+[Normal] Against measurements we already make. DLS size and zeta give the DLVO check; SDS-PAGE band identity tells us which proteins are actually in the hard corona, which is the ranking docking and MD predict; FTIR and circular dichroism give secondary-structure change, which the MD trajectory also reports. The pipeline is meant to be triangulated with the wet lab, not to replace it.
+[Normal] Is kappa-casein really the weakest binder?
+[Normal] No — I would not claim that. In our run kappa-casein was docked as a one-hundred-eighty-angstrom fully extended chain, which forced a different search grid from the other four ligands. Its last-place ranking is not interpretable and should be re-run with a compact conformer.
+[Heading 1] Phrases worth keeping exact
+[List Paragraph] “Docking ranks and hypothesizes; it does not measure.”
+[List Paragraph] “A negative result with a mechanism, not a failed experiment.”
+[List Paragraph] “The repulsion term scales with zeta squared — so a modest drop in charge removes most of the barrier.”
+[List Paragraph] “Three methods that hand results to each other, rather than three separate calculations.”

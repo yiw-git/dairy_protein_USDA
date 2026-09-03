@@ -10,7 +10,7 @@ ax.set_xlim(0,16); ax.set_ylim(0,4.12); ax.axis('off')
 cards = [
  ("1","DLVO / extended DLVO","whole particle · ~100 nm","Does a stability\nbarrier exist?","V(D) barrier across\npH × ionic strength"),
  ("2","Molecular docking","residue level · Å","Which contacts\nform?","protein ranking +\ninterface hypothesis"),
- ("3","Coarse-grained MD","surface patch · ~10 nm, µs","Does the interface\nhold?","contact persistence\n+ steric term"),
+ ("3","Coarse-grained MD","surface patch · ~10 nm, µs","Does the interface\nhold?","contact persistence +\nprotein-layer repulsion"),
 ]
 CW, CH = 4.80, 2.76
 CY0, CY1 = 0.98, 0.98+CH
@@ -38,7 +38,7 @@ for x0,x1 in [(5.10,5.52),(10.48,10.90)]:
 ax.add_patch(FancyArrowPatch((13.38, CY0-0.04),(2.62, CY0-0.04),
              connectionstyle="arc3,rad=-0.10", arrowstyle='-|>', mutation_scale=14,
              lw=1.6, color=GREY, linestyle=(0,(5,3)), zorder=0))
-ax.text(8.0, 0.04, "effective steric / adhesion term feeds back into extended DLVO",
+ax.text(8.0, 0.04, "protein-layer repulsion feeds back into extended DLVO",
         ha='center', va='bottom', fontsize=10.5, color=GREY, zorder=6)
 
 plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
